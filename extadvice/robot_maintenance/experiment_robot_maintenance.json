@@ -20,9 +20,9 @@
 						"duration": "60s"
 					},
 					"customLabel": "WHEN: Maintaining robot ${target.attr('steadybit.label')}",
-					"actionType": "com.steadybit.extension_scaffold.robot.log",
+					"actionType": "com.steadybit.extension_grafana.robot.log",
 					"radius": {
-						"targetType": "com.steadybit.extension_scaffold.robot",
+						"targetType": "com.steadybit.extension_grafana.robot",
 						"predicate": {
 							"operator": "AND",
 							"predicates": [

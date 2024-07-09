@@ -18,7 +18,7 @@ type Specification struct {
 	RobotNames []string `json:"robotNames" split_words:"true" required:"true" default:"Bender,Terminator,R2-D2"`
 	// variable STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ROBOT="robot.label.a,robot.tags.*".
 	DiscoveryAttributesExcludesRobot []string `json:"discoveryAttributesExcludesRobot" split_words:"true" required:"false"`
-	// variable STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST="robot_maintenance". To activate all advice, set the value to "*". To exclude some advice, set the value to e.g. "com.steadybit.extension_scaffold.advice.robot-maintenance".
+	// variable STEADYBIT_EXTENSION_ACTIVE_ADVICE_LIST="robot_maintenance". To activate all advice, set the value to "*". To exclude some advice, set the value to e.g. "com.steadybit.extension_grafana.advice.robot-maintenance".
 	ActiveAdviceList []string `required:"false" split_words:"true" default:"*"`
 }
 

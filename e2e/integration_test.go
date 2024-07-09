@@ -17,7 +17,7 @@ import (
 
 func TestWithMinikube(t *testing.T) {
 	extFactory := e2e.HelmExtensionFactory{
-		Name: "extension-scaffold",
+		Name: "extension-grafana",
 		Port: 8080,
 		ExtraArgs: func(m *e2e.Minikube) []string {
 			return []string{
@@ -37,8 +37,8 @@ func TestWithMinikube(t *testing.T) {
 			Test: testDiscovery,
 		},
 		{
-			Name: "run scaffold",
-			Test: testRunscaffold,
+			Name: "run grafana",
+			Test: testRungrafana,
 		},
 	})
 }
@@ -51,23 +51,23 @@ func testDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	target, err := e2e.PollForTarget(ctx, e, "com.steadybit.extension_scaffold.robot", func(target discovery_kit_api.Target) bool {
+	target, err := e2e.PollForTarget(ctx, e, "com.steadybit.extension_grafana.robot", func(target discovery_kit_api.Target) bool {
 		return e2e.HasAttribute(target, "steadybit.label", "Bender")
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, target.TargetType, "com.steadybit.extension_scaffold.robot")
-	assert.Equal(t, target.Attributes["robot.reportedBy"], []string{"extension-scaffold"})
+	assert.Equal(t, target.TargetType, "com.steadybit.extension_grafana.robot")
+	assert.Equal(t, target.Attributes["robot.reportedBy"], []string{"extension-grafana"})
 	assert.NotContains(t, target.Attributes, "robot.tags.firstTag")
 }
 
-func testRunscaffold(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+func testRungrafana(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
 	config := struct {
 		Duration     int      `json:"duration"`
 	}{
 		Duration:     3000,
 	}
-	exec, err := e.RunAction("com.steadybit.extension_scaffold.robot.log", &action_kit_api.Target{
+	exec, err := e.RunAction("com.steadybit.extension_grafana.robot.log", &action_kit_api.Target{
 		Name: "robot",
 	}, config, nil)
 	require.NoError(t, err)

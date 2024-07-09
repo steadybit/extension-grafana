@@ -5,11 +5,11 @@ import (
 	"github.com/steadybit/advice-kit/go/advice_kit_api"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
-	"github.com/steadybit/extension-scaffold/extadvice/advice_common"
-	"github.com/steadybit/extension-scaffold/extrobots"
+	"github.com/steadybit/extension-grafana/extadvice/advice_common"
+	"github.com/steadybit/extension-grafana/extrobots"
 )
 
-const RobotMaintenanceID = "com.steadybit.extension_scaffold.advice.robot-maintenance"
+const RobotMaintenanceID = "com.steadybit.extension_grafana.advice.robot-maintenance"
 
 //go:embed *
 var RobotMaintenanceContent embed.FS
