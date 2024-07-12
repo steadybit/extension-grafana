@@ -60,8 +60,8 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "default",
-					Description: extutil.Ptr("Find alert rule by name"),
-					Query:       "grafana.alert-rule.name=\"\"",
+					Description: extutil.Ptr("Find alert rule by id"),
+					Query:       "grafana.alert-rule.id=\"\"",
 				},
 			}),
 		}),
