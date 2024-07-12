@@ -31,7 +31,7 @@ func TestWithMinikube(t *testing.T) {
 	extlogging.InitZeroLog()
 
 	extFactory := e2e.HelmExtensionFactory{
-		Name: "extension-stackstate",
+		Name: "extension-grafana",
 		Port: 8083,
 		ExtraArgs: func(m *e2e.Minikube) []string {
 			return []string{
@@ -51,29 +51,37 @@ func TestWithMinikube(t *testing.T) {
 			Test: testDiscovery,
 		},
 		{
-			Name: "service check meets expectations",
-			Test: testServiceCheck(server, "CLEAR", "CLEAR", ""),
+			Name: "alert rule check meets expectations",
+			Test: testAlertRuleCheck(server, "normal", "normal", ""),
 		},
 		{
-			Name: "service check fails expectations",
-			Test: testServiceCheck(server, "DEVIATING", "CLEAR", action_kit_api.Failed),
+			Name: "alert rule check fails expectations",
+			Test: testAlertRuleCheck(server, "firing", "firing", action_kit_api.Failed),
 		},
 		{
-			Name: "service check errors",
-			Test: testServiceCheck(server, "STATUS-500", "CLEAR", action_kit_api.Failed),
+			Name: "alert rule check fails expectations",
+			Test: testAlertRuleCheck(server, "inactive", "inactive", action_kit_api.Failed),
+		},
+		{
+			Name: "alert rule check errors",
+			Test: testAlertRuleCheck(server, "STATUS-500", "normal", action_kit_api.Failed),
 		},
 	})
 }
 
-func testServiceCheck(server *mockServer, status, expectedStatus string, wantedActionStatus action_kit_api.ActionKitErrorStatus) func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
+func testAlertRuleCheck(server *mockServer, status, expectedStatus string, wantedActionStatus action_kit_api.ActionKitErrorStatus) func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
 	return func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
 		target := &action_kit_api.Target{
-			Name: "111",
+			Name: "test_firing",
 			Attributes: map[string][]string{
-				"stackstate.service.id": {"111"},
-				"k8s.service.name":      {"eins-oelf"},
-				"k8s.cluster-name":      {"cluster-eins-elf"},
-				"k8s.namespace":         {"namespace-eins-elf"},
+				"grafana.alert-rule.health":          {"ok"},
+				"grafana.alert-rule.last-evaluation": {""},
+				"grafana.alert-rule.type":            {"alerting"},
+				"grafana.alert-rule.state":           {"firing"},
+				"grafana.alert-rule.datasource":      {"prometheus"},
+				"grafana.alert-rule.group":           {"GoldenSignalsAlerts"},
+				"grafana.alert-rule.name":            {"test_firing"},
+				"grafana.alert-rule.id":              {"prometheus-GoldenSignalsAlerts-test_firing"},
 			},
 		}
 
@@ -83,7 +91,7 @@ func testServiceCheck(server *mockServer, status, expectedStatus string, wantedA
 		}{Duration: 5_000, ExpectedStatus: expectedStatus}
 
 		server.state = status
-		action, err := e.RunAction("com.steadybit.extension_stackstate.service.check", target, config, &action_kit_api.ExecutionContext{})
+		action, err := e.RunAction("com.steadybit.extension_grafana.alert-rule.check", target, config, &action_kit_api.ExecutionContext{})
 		require.NoError(t, err)
 		defer func() { _ = action.Cancel() }()
 
@@ -104,12 +112,14 @@ func testDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	target, err := e2e.PollForTarget(ctx, e, "com.steadybit.extension_stackstate.service", func(target discovery_kit_api.Target) bool {
-		return e2e.HasAttribute(target, "stackstate.service.id", "111")
+	target, err := e2e.PollForTarget(ctx, e, "com.steadybit.extension_grafana.alert-rule", func(target discovery_kit_api.Target) bool {
+		return e2e.HasAttribute(target, "grafana.alert-rule.id", "prometheus-GoldenSignalsAlerts-test_firing")
 	})
 	require.NoError(t, err)
-	assert.Equal(t, target.TargetType, "com.steadybit.extension_stackstate.service")
-	assert.Equal(t, target.Attributes["k8s.service.name"], []string{"eins-oelf"})
-	assert.Equal(t, target.Attributes["k8s.cluster-name"], []string{"cluster-eins-elf"})
-	assert.Equal(t, target.Attributes["k8s.namespace"], []string{"namespace-eins-elf"})
+	assert.Equal(t, target.TargetType, "com.steadybit.extension_grafana.alert-rule")
+	assert.Equal(t, target.Attributes["grafana.alert-rule.health"], []string{"ok"})
+	assert.Equal(t, target.Attributes["grafana.alert-rule.type"], []string{"alerting"})
+	assert.Equal(t, target.Attributes["grafana.alert-rule.state"], []string{"firing"})
+	assert.Equal(t, target.Attributes["grafana.alert-rule.datasource"], []string{"prometheus"})
+	assert.Equal(t, target.Attributes["grafana.alert-rule.name"], []string{"test_firing"})
 }

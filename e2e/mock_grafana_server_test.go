@@ -33,7 +33,7 @@ func createMockGrafanaServer() *mockServer {
 
 	mock := &mockServer{http: &server, state: "CLEAR"}
 	mux.Handle("GET /api/prometheus/prometheus/api/datasources", handler(mock.viewDatasources))
-	mux.Handle("GET /api/prometheus/prometheus/api/v1/alerts", handler(mock.viewAlertManagerAlertRules))
+	mux.Handle("GET /api/prometheus/loki/api/v1/alerts", handler(mock.viewLokiAlertRules))
 	mux.Handle("GET /api/prometheus/prometheus/api/v1/alerts", handler(mock.viewPrometheusAlertRules))
 	mux.Handle("GET /api/prometheus/grafana/api/v1/rules", handler(mock.viewGrafanaAlertRules))
 	return mock
@@ -58,6 +58,23 @@ func (m *mockServer) viewDatasources() []extalertrules.DataSource {
 			TypeLogoUrl: "public/app/plugins/datasource/prometheus/img/prometheus_logo.svg",
 			Access:      "proxy",
 			URL:         "http://prometheus-kube-prometheus-prometheus.prometheus:9090/",
+			User:        "",
+			Database:    "",
+			BasicAuth:   false,
+			IsDefault:   true,
+			JsonData:    nil,
+			ReadOnly:    true,
+		},
+		{
+			ID:          3,
+			UID:         "loki",
+			OrgID:       3,
+			Name:        "Loki",
+			Type:        "loki",
+			TypeName:    "Loki",
+			TypeLogoUrl: "public/app/plugins/datasource/prometheus/img/loki_logo.svg",
+			Access:      "proxy",
+			URL:         "http://prometheus-kube-prometheus-loki.prometheus:9090/",
 			User:        "",
 			Database:    "",
 			BasicAuth:   false,
@@ -131,7 +148,7 @@ func (m *mockServer) viewGrafanaAlertRules() extalertrules.AlertsStates {
 	}
 }
 
-func (m *mockServer) viewAlertManagerAlertRules() extalertrules.AlertsStates {
+func (m *mockServer) viewLokiAlertRules() extalertrules.AlertsStates {
 	if m.state == "STATUS-500" {
 		panic("status 500")
 	}
