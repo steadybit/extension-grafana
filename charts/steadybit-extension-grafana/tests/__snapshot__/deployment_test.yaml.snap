@@ -32,13 +32,20 @@ manifest should match snapshot using podAnnotations and Labels:
                   value: INFO
                 - name: STEADYBIT_LOG_FORMAT
                   value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
                   path: /health/liveness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -48,7 +55,7 @@ manifest should match snapshot using podAnnotations and Labels:
                 failureThreshold: 3
                 httpGet:
                   path: /health/readiness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -108,13 +115,20 @@ manifest should match snapshot with TLS:
                   value: /etc/extension/certificates/server-cert/tls.crt
                 - name: STEADYBIT_EXTENSION_TLS_SERVER_KEY
                   value: /etc/extension/certificates/server-cert/tls.key
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
                   path: /health/liveness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -124,7 +138,7 @@ manifest should match snapshot with TLS:
                 failureThreshold: 3
                 httpGet:
                   path: /health/readiness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -155,6 +169,164 @@ manifest should match snapshot with TLS:
               secret:
                 optional: false
                 secretName: server-cert
+manifest should match snapshot with env vars:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        steadybit.com/discovery-disabled: "true"
+        steadybit.com/extension: "true"
+      name: RELEASE-NAME-steadybit-extension-grafana
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: steadybit-extension-grafana
+      template:
+        metadata:
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
+          labels:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: steadybit-extension-grafana
+            steadybit.com/discovery-disabled: "true"
+            steadybit.com/extension: "true"
+        spec:
+          containers:
+            - env:
+                - name: STEADYBIT_LOG_LEVEL
+                  value: INFO
+                - name: STEADYBIT_LOG_FORMAT
+                  value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: https://grafana.example.com
+              image: ghcr.io/steadybit/extension-grafana:v0.0.0
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 5
+                httpGet:
+                  path: /health/liveness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+              name: extension
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /health/readiness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 50m
+                  memory: 32Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+                runAsGroup: 10000
+                runAsNonRoot: true
+                runAsUser: 10000
+              volumeMounts: null
+          serviceAccountName: steadybit-extension-grafana
+          volumes: null
+manifest should match snapshot with existing secret:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        steadybit.com/discovery-disabled: "true"
+        steadybit.com/extension: "true"
+      name: RELEASE-NAME-steadybit-extension-grafana
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: steadybit-extension-grafana
+      template:
+        metadata:
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
+          labels:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: steadybit-extension-grafana
+            steadybit.com/discovery-disabled: "true"
+            steadybit.com/extension: "true"
+        spec:
+          containers:
+            - env:
+                - name: STEADYBIT_LOG_LEVEL
+                  value: INFO
+                - name: STEADYBIT_LOG_FORMAT
+                  value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: secret-grafana-existing
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: https://grafana.example.com
+              image: ghcr.io/steadybit/extension-grafana:v0.0.0
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 5
+                httpGet:
+                  path: /health/liveness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+              name: extension
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /health/readiness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 50m
+                  memory: 32Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+                runAsGroup: 10000
+                runAsNonRoot: true
+                runAsUser: 10000
+              volumeMounts: null
+          serviceAccountName: steadybit-extension-grafana
+          volumes: null
 manifest should match snapshot with extra env vars:
   1: |
     apiVersion: apps/v1
@@ -187,6 +359,13 @@ manifest should match snapshot with extra env vars:
                   value: INFO
                 - name: STEADYBIT_LOG_FORMAT
                   value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
                 - name: FOO
                   value: bar
               envFrom:
@@ -200,7 +379,7 @@ manifest should match snapshot with extra env vars:
                 failureThreshold: 5
                 httpGet:
                   path: /health/liveness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -210,7 +389,7 @@ manifest should match snapshot with extra env vars:
                 failureThreshold: 3
                 httpGet:
                   path: /health/readiness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -268,13 +447,20 @@ manifest should match snapshot with extra labels:
                   value: INFO
                 - name: STEADYBIT_LOG_FORMAT
                   value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
                   path: /health/liveness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -284,7 +470,7 @@ manifest should match snapshot with extra labels:
                 failureThreshold: 3
                 httpGet:
                   path: /health/readiness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -346,13 +532,20 @@ manifest should match snapshot with mutual TLS:
                   value: /etc/extension/certificates/server-cert/tls.key
                 - name: STEADYBIT_EXTENSION_TLS_CLIENT_CAS
                   value: /etc/extension/certificates/client-cert-a/tls.crt,/etc/extension/certificates/client-cert-a/tls.crt
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
                   path: /health/liveness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -362,7 +555,7 @@ manifest should match snapshot with mutual TLS:
                 failureThreshold: 3
                 httpGet:
                   path: /health/readiness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -438,13 +631,20 @@ manifest should match snapshot with mutual TLS using containerPaths:
                   value: /etc/tls/server.key
                 - name: STEADYBIT_EXTENSION_TLS_CLIENT_CAS
                   value: /etc/tls/ca.crt,/etc/tls/ca2.crt
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
                   path: /health/liveness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -454,7 +654,7 @@ manifest should match snapshot with mutual TLS using containerPaths:
                 failureThreshold: 3
                 httpGet:
                   path: /health/readiness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -510,13 +710,20 @@ manifest should match snapshot with podSecurityContext:
                   value: INFO
                 - name: STEADYBIT_LOG_FORMAT
                   value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
                   path: /health/liveness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -526,7 +733,7 @@ manifest should match snapshot with podSecurityContext:
                 failureThreshold: 3
                 httpGet:
                   path: /health/readiness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -584,13 +791,20 @@ manifest should match snapshot with priority class:
                   value: INFO
                 - name: STEADYBIT_LOG_FORMAT
                   value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
                   path: /health/liveness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -600,7 +814,7 @@ manifest should match snapshot with priority class:
                 failureThreshold: 3
                 httpGet:
                   path: /health/readiness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -657,13 +871,20 @@ manifest should match snapshot without TLS:
                   value: INFO
                 - name: STEADYBIT_LOG_FORMAT
                   value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
                 failureThreshold: 5
                 httpGet:
                   path: /health/liveness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1
@@ -673,7 +894,7 @@ manifest should match snapshot without TLS:
                 failureThreshold: 3
                 httpGet:
                   path: /health/readiness
-                  port: 8081
+                  port: 8084
                 initialDelaySeconds: 10
                 periodSeconds: 10
                 successThreshold: 1

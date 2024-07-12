@@ -62,6 +62,32 @@ tests:
          name: env-secrets
     asserts:
       - matchSnapshot: {}
+  - it: manifest should match snapshot with extra env vars
+    set:
+      extraEnv:
+        - name: FOO
+          value: "bar"
+      extraEnvFrom:
+        - configMapRef:
+          name: env-configmap
+        - secretRef:
+          name: env-secrets
+    asserts:
+      - matchSnapshot: {}
+  - it: manifest should match snapshot with env vars
+    set:
+      grafana:
+        apiBaseUrl: "https://grafana.example.com"
+        serviceToken: "123"
+    asserts:
+      - matchSnapshot: {}
+  - it: manifest should match snapshot with existing secret
+    set:
+      grafana:
+        apiBaseUrl: "https://grafana.example.com"
+        existingSecret: "secret-grafana-existing"
+    asserts:
+      - matchSnapshot: {}
   - it: manifest should match snapshot with extra labels
     set:
       extraLabels:

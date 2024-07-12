@@ -1,6 +1,15 @@
-# Default values for steadybit-extension-grafana.
+# Default values for steadybit-extension-kubernetes.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
+grafana:
+  # grafana.serviceToken -- The Service Token used to access the StackState API.
+  serviceToken: ""
+  # grafana.apiBaseUrl -- The base url for StackState API Calls, for example `https://yourcompany.app.grafana.io/api`
+  apiBaseUrl: ""
+  # grafana.existingSecret -- If defined, will skip secret creation and instead assume that the referenced secret contains the keys api-token.
+  existingSecret: null
+
 image:
   # image.name -- The container image to use for the Steadybit grafana extension.
   name: ghcr.io/steadybit/extension-grafana
@@ -29,7 +38,6 @@ tls:
       # tls.client.certificates.paths -- List paths containing TLS certificates for the extension to trust.
       #  The extension will require clients to authenticate using one of these certificates. In essence, this will enable mutual TLS.
       paths: []
-
 logging:
   # logging.level -- The active log level. Valid values are: TRACE, DEBUG, INFO, WARN, ERROR
   level: INFO
@@ -73,7 +81,7 @@ serviceAccount:
 # extra labels to apply to the Kubernetes resources
 extraLabels: {}
 
-# deploymentAnnotations: Additional annotations to be added to the deployment.
+# deploymentAnnotations -- Additional annotations to be added to the deployment.
 deploymentAnnotations: {}
 
 # podAnnotations -- Additional annotations to be added to the pods.
@@ -120,5 +128,5 @@ extraEnvFrom: []
 discovery:
   attributes:
     excludes:
-      # discovery.attributes.excludes.robot -- List of attributes to exclude from Robot discovery.
-      robot: []
+      # discovery.attributes.excludes.service -- List of attributes to exclude from discovery.
+      service: []
