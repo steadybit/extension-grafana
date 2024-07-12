@@ -89,7 +89,7 @@ func (d *alertDiscovery) DiscoverTargets(ctx context.Context) ([]discovery_kit_a
 func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit_api.Target {
 	result := make([]discovery_kit_api.Target, 0, 1000)
 
-	datasources := getAllDatasources(ctx, client)
+	datasources := getAllCompatibleDatasource(ctx, client)
 	// for every datasource compatible
 	for _, datasource := range datasources {
 		var perDatasourceResponse AlertsStates
@@ -103,14 +103,14 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 			return result
 		}
 
-		if res.StatusCode() != 200 {
+		if res.StatusCode() != 200 && res.StatusCode() != 404 {
 			log.Error().Msgf("Grafana API responded with unexpected status code %d while retrieving alert states. Full response: %v",
 				res.StatusCode(),
 				res.String())
 			return result
 		}
 
-		log.Trace().Msgf("Stackstate response: %v", perDatasourceResponse.AlertsData)
+		log.Trace().Msgf("Grafana response: %v", perDatasourceResponse.AlertsData)
 
 		for _, alertGroup := range perDatasourceResponse.AlertsData.AlertsGroups {
 			for _, rule := range alertGroup.AlertsRules {
@@ -146,14 +146,14 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 		return result
 	}
 
-	if res.StatusCode() != 200 {
+	if res.StatusCode() != 200 && res.StatusCode() != 404 {
 		log.Error().Msgf("Grafana API responded with unexpected status code %d while retrieving alert states. Full response: %v",
 			res.StatusCode(),
 			res.String())
 		return result
 	}
 
-	log.Trace().Msgf("Stackstate response: %v", grafanaAlertRules.AlertsData)
+	log.Trace().Msgf("Grafana response: %v", grafanaAlertRules.AlertsData)
 
 	for _, alertGroup := range grafanaAlertRules.AlertsData.AlertsGroups {
 		for _, rule := range alertGroup.AlertsRules {
@@ -178,7 +178,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 	return discovery_kit_commons.ApplyAttributeExcludes(result, config.Config.DiscoveryAttributesExcludesAlert)
 }
 
-func getAllDatasources(ctx context.Context, client *resty.Client) []DataSource {
+func getAllCompatibleDatasource(ctx context.Context, client *resty.Client) []DataSource {
 	var grafanaResponse []DataSource
 	res, err := client.R().
 		SetContext(ctx).
@@ -197,16 +197,16 @@ func getAllDatasources(ctx context.Context, client *resty.Client) []DataSource {
 		return grafanaResponse
 	}
 
-	i := 0
+	grafanaResponseFiltered := make([]DataSource, 0)
 	for _, ds := range grafanaResponse {
 		if isAlertRuleCompatible(ds) {
-			grafanaResponse[i] = ds
-			i++
+			grafanaResponseFiltered = append(grafanaResponseFiltered, ds)
 		}
 	}
 	log.Trace().Msgf("Grafana response: %v", grafanaResponse)
+	log.Trace().Msgf("Grafana filtered response: %v", grafanaResponseFiltered)
 
-	return grafanaResponse
+	return grafanaResponseFiltered
 }
 
 func isAlertRuleCompatible(ds DataSource) bool {

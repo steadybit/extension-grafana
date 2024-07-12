@@ -55,7 +55,7 @@ func main() {
 func initRestyClient() {
 	extalertrules.RestyClient = resty.New()
 	extalertrules.RestyClient.SetBaseURL(config.Config.ApiBaseUrl)
-	extalertrules.RestyClient.SetHeader("X-API-Key", config.Config.ServiceToken)
+	extalertrules.RestyClient.SetHeader("Authorization", "Bearer "+config.Config.ServiceToken)
 	extalertrules.RestyClient.SetHeader("Content-Type", "application/json")
 }
 
