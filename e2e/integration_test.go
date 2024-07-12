@@ -112,7 +112,7 @@ func testDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	target, err := e2e.PollForTarget(ctx, e, "com.steadybit.extension_grafana.alert-rule", func(target discovery_kit_api.Target) bool {
+	target, err := e2e.PollForTarget(ctx, e, "prometheus-GoldenSignalsAlerts-test_firing", func(target discovery_kit_api.Target) bool {
 		return e2e.HasAttribute(target, "grafana.alert-rule.id", "prometheus-GoldenSignalsAlerts-test_firing")
 	})
 	require.NoError(t, err)
