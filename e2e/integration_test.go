@@ -52,15 +52,15 @@ func TestWithMinikube(t *testing.T) {
 		},
 		{
 			Name: "alert rule check meets expectations",
-			Test: testAlertRuleCheck(server, "normal", "normal", ""),
+			Test: testAlertRuleCheckNormal(server, "normal", "normal", ""),
 		},
 		{
 			Name: "alert rule check fails expectations",
-			Test: testAlertRuleCheck(server, "firing", "firing", action_kit_api.Failed),
+			Test: testAlertRuleCheckFiring(server, "firing", "firing", ""),
 		},
 		{
 			Name: "alert rule check fails expectations",
-			Test: testAlertRuleCheck(server, "inactive", "inactive", action_kit_api.Failed),
+			Test: testAlertRuleCheckInactive(server, "inactive", "inactive", ""),
 		},
 		//{
 		//	Name: "alert rule check errors",
@@ -69,7 +69,7 @@ func TestWithMinikube(t *testing.T) {
 	})
 }
 
-func testAlertRuleCheck(server *mockServer, status, expectedState string, wantedActionStatus action_kit_api.ActionKitErrorStatus) func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
+func testAlertRuleCheckNormal(server *mockServer, status, expectedState string, wantedActionStatus action_kit_api.ActionKitErrorStatus) func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
 	return func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
 		target := &action_kit_api.Target{
 			Name: "test_firing",
@@ -77,11 +77,81 @@ func testAlertRuleCheck(server *mockServer, status, expectedState string, wanted
 				"grafana.alert-rule.health":          {"ok"},
 				"grafana.alert-rule.last-evaluation": {""},
 				"grafana.alert-rule.type":            {"alerting"},
-				"grafana.alert-rule.state":           {expectedState},
+				"grafana.alert-rule.state":           {"normal"},
+				"grafana.alert-rule.datasource":      {"loki"},
+				"grafana.alert-rule.group":           {"GoldenSignalsAlerts"},
+				"grafana.alert-rule.name":            {"test_normal"},
+				"grafana.alert-rule.id":              {"loki-GoldenSignalsAlerts-test_normal"},
+			},
+		}
+
+		config := struct {
+			Duration      int    `json:"duration"`
+			ExpectedState string `json:"expectedState"`
+		}{Duration: 1_000, ExpectedState: expectedState}
+
+		server.state = status
+		action, err := e.RunAction("com.steadybit.extension_grafana.alert-rule.check", target, config, &action_kit_api.ExecutionContext{})
+		require.NoError(t, err)
+		defer func() { _ = action.Cancel() }()
+
+		err = action.Wait()
+		if wantedActionStatus == "" {
+			require.NoError(t, err)
+		} else {
+			require.ErrorContains(t, err, fmt.Sprintf("[%s]", wantedActionStatus))
+		}
+	}
+}
+
+func testAlertRuleCheckFiring(server *mockServer, status, expectedState string, wantedActionStatus action_kit_api.ActionKitErrorStatus) func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
+	return func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
+		target := &action_kit_api.Target{
+			Name: "test_firing",
+			Attributes: map[string][]string{
+				"grafana.alert-rule.health":          {"ok"},
+				"grafana.alert-rule.last-evaluation": {""},
+				"grafana.alert-rule.type":            {"alerting"},
+				"grafana.alert-rule.state":           {"firing"},
 				"grafana.alert-rule.datasource":      {"prometheus"},
 				"grafana.alert-rule.group":           {"GoldenSignalsAlerts"},
 				"grafana.alert-rule.name":            {"test_firing"},
 				"grafana.alert-rule.id":              {"prometheus-GoldenSignalsAlerts-test_firing"},
+			},
+		}
+
+		config := struct {
+			Duration      int    `json:"duration"`
+			ExpectedState string `json:"expectedState"`
+		}{Duration: 1_000, ExpectedState: expectedState}
+
+		server.state = status
+		action, err := e.RunAction("com.steadybit.extension_grafana.alert-rule.check", target, config, &action_kit_api.ExecutionContext{})
+		require.NoError(t, err)
+		defer func() { _ = action.Cancel() }()
+
+		err = action.Wait()
+		if wantedActionStatus == "" {
+			require.NoError(t, err)
+		} else {
+			require.ErrorContains(t, err, fmt.Sprintf("[%s]", wantedActionStatus))
+		}
+	}
+}
+
+func testAlertRuleCheckInactive(server *mockServer, status, expectedState string, wantedActionStatus action_kit_api.ActionKitErrorStatus) func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
+	return func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
+		target := &action_kit_api.Target{
+			Name: "test_firing",
+			Attributes: map[string][]string{
+				"grafana.alert-rule.health":          {"ok"},
+				"grafana.alert-rule.last-evaluation": {""},
+				"grafana.alert-rule.type":            {"alerting"},
+				"grafana.alert-rule.state":           {"inactive"},
+				"grafana.alert-rule.datasource":      {"grafana"},
+				"grafana.alert-rule.group":           {"GoldenSignalsAlerts"},
+				"grafana.alert-rule.name":            {"test_inactive"},
+				"grafana.alert-rule.id":              {"grafana-GoldenSignalsAlerts-test_inactive"},
 			},
 		}
 
