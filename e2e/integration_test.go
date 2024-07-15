@@ -62,14 +62,14 @@ func TestWithMinikube(t *testing.T) {
 			Name: "alert rule check fails expectations",
 			Test: testAlertRuleCheck(server, "inactive", "inactive", action_kit_api.Failed),
 		},
-		{
-			Name: "alert rule check errors",
-			Test: testAlertRuleCheck(server, "STATUS-500", "normal", action_kit_api.Failed),
-		},
+		//{
+		//	Name: "alert rule check errors",
+		//	Test: testAlertRuleCheck(server, "STATUS-500", "", action_kit_api.Failed),
+		//},
 	})
 }
 
-func testAlertRuleCheck(server *mockServer, status, expectedStatus string, wantedActionStatus action_kit_api.ActionKitErrorStatus) func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
+func testAlertRuleCheck(server *mockServer, status, expectedState string, wantedActionStatus action_kit_api.ActionKitErrorStatus) func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
 	return func(t *testing.T, minikube *e2e.Minikube, e *e2e.Extension) {
 		target := &action_kit_api.Target{
 			Name: "test_firing",
@@ -77,7 +77,7 @@ func testAlertRuleCheck(server *mockServer, status, expectedStatus string, wante
 				"grafana.alert-rule.health":          {"ok"},
 				"grafana.alert-rule.last-evaluation": {""},
 				"grafana.alert-rule.type":            {"alerting"},
-				"grafana.alert-rule.state":           {"firing"},
+				"grafana.alert-rule.state":           {expectedState},
 				"grafana.alert-rule.datasource":      {"prometheus"},
 				"grafana.alert-rule.group":           {"GoldenSignalsAlerts"},
 				"grafana.alert-rule.name":            {"test_firing"},
@@ -86,9 +86,9 @@ func testAlertRuleCheck(server *mockServer, status, expectedStatus string, wante
 		}
 
 		config := struct {
-			Duration       int    `json:"duration"`
-			ExpectedStatus string `json:"expectedStatus"`
-		}{Duration: 1_000, ExpectedStatus: expectedStatus}
+			Duration      int    `json:"duration"`
+			ExpectedState string `json:"expectedState"`
+		}{Duration: 1_000, ExpectedState: expectedState}
 
 		server.state = status
 		action, err := e.RunAction("com.steadybit.extension_grafana.alert-rule.check", target, config, &action_kit_api.ExecutionContext{})

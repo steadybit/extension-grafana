@@ -144,15 +144,16 @@ func (m *AlertRuleStateCheckAction) Prepare(_ context.Context, state *AlertRuleC
 	duration := request.Config["duration"].(float64)
 	end := time.Now().Add(time.Millisecond * time.Duration(duration))
 
-	var expectedStatus string
-	if request.Config["expectedStatus"] != nil {
-		expectedStatus = fmt.Sprintf("%v", request.Config["expectedStatus"])
+	var expectedState string
+	if request.Config["expectedState"] != nil {
+		expectedState = fmt.Sprintf("%v", request.Config["expectedState"])
 	}
 
 	state.AlertRuleId = alertRuleId[0]
+	state.AlertRuleDatasource = request.Target.Attributes["grafana.alert-rule.datasource"][0]
 	state.AlertRuleName = request.Target.Attributes["grafana.alert-rule.name"][0]
 	state.End = end
-	state.ExpectedState = expectedStatus
+	state.ExpectedState = expectedState
 
 	return nil, nil
 }
