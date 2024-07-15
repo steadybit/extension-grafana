@@ -32,9 +32,9 @@ func createMockGrafanaServer() *mockServer {
 	log.Info().Str("url", server.URL).Msg("Started Mock-Server")
 
 	mock := &mockServer{http: &server, state: "CLEAR"}
-	mux.Handle("GET /api/prometheus/prometheus/api/datasources", handler(mock.viewDatasources))
-	mux.Handle("GET /api/prometheus/loki/api/v1/alerts", handler(mock.viewLokiAlertRules))
-	mux.Handle("GET /api/prometheus/prometheus/api/v1/alerts", handler(mock.viewPrometheusAlertRules))
+	mux.Handle("GET /api/datasources", handler(mock.viewDatasources))
+	mux.Handle("GET /api/prometheus/loki/api/v1/rules", handler(mock.viewLokiAlertRules))
+	mux.Handle("GET /api/prometheus/prometheus/api/v1/rules", handler(mock.viewPrometheusAlertRules))
 	mux.Handle("GET /api/prometheus/grafana/api/v1/rules", handler(mock.viewGrafanaAlertRules))
 	return mock
 }

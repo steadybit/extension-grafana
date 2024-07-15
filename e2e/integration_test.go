@@ -35,7 +35,7 @@ func TestWithMinikube(t *testing.T) {
 		Port: 8083,
 		ExtraArgs: func(m *e2e.Minikube) []string {
 			return []string{
-				"--set", fmt.Sprintf("stackstate.apiBaseUrl=http://host.minikube.internal:%s", port),
+				"--set", fmt.Sprintf("grafana.apiBaseUrl=http://host.minikube.internal:%s", port),
 				"--set", "logging.level=trace",
 			}
 		},
@@ -88,7 +88,7 @@ func testAlertRuleCheck(server *mockServer, status, expectedStatus string, wante
 		config := struct {
 			Duration       int    `json:"duration"`
 			ExpectedStatus string `json:"expectedStatus"`
-		}{Duration: 5_000, ExpectedStatus: expectedStatus}
+		}{Duration: 1_000, ExpectedStatus: expectedStatus}
 
 		server.state = status
 		action, err := e.RunAction("com.steadybit.extension_grafana.alert-rule.check", target, config, &action_kit_api.ExecutionContext{})
@@ -112,7 +112,7 @@ func testDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	target, err := e2e.PollForTarget(ctx, e, "prometheus-GoldenSignalsAlerts-test_firing", func(target discovery_kit_api.Target) bool {
+	target, err := e2e.PollForTarget(ctx, e, "com.steadybit.extension_grafana.alert-rule", func(target discovery_kit_api.Target) bool {
 		return e2e.HasAttribute(target, "grafana.alert-rule.id", "prometheus-GoldenSignalsAlerts-test_firing")
 	})
 	require.NoError(t, err)
@@ -120,6 +120,6 @@ func testDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	assert.Equal(t, target.Attributes["grafana.alert-rule.health"], []string{"ok"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.type"], []string{"alerting"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.state"], []string{"firing"})
-	assert.Equal(t, target.Attributes["grafana.alert-rule.datasource"], []string{"prometheus"})
+	assert.Equal(t, target.Attributes["grafana.alert-rule.datasource"], []string{"Prometheus"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.name"], []string{"test_firing"})
 }

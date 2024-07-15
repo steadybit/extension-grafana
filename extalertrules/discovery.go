@@ -139,7 +139,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 	res, err := client.R().
 		SetContext(ctx).
 		SetResult(&grafanaAlertRules).
-		Get("/prometheus/grafana/api/v1/rules")
+		Get("/api/prometheus/grafana/api/v1/rules")
 
 	if err != nil {
 		log.Err(err).Msgf("Failed to retrieve alerts states from Grafana. Full response: %v", res.String())
