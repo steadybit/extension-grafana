@@ -44,25 +44,20 @@ func (d *alertDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 
 func (d *alertDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
-		Id:      TargetType,
-		Version: extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:    extutil.Ptr(targetIcon),
-
-		// Labels used in the UI
-		Label: discovery_kit_api.PluralLabel{One: "Robot", Other: "Robots"},
-
-		// Category for the targets to appear in
-		Category: extutil.Ptr("example"),
-
-		// Specify attributes shown in table columns and to be used for sorting
+		Id:       TargetType,
+		Label:    discovery_kit_api.PluralLabel{One: "Grafana alert-rule", Other: "Grafana alert-rules"},
+		Category: extutil.Ptr("monitoring"),
+		Version:  extbuild.GetSemverVersionStringOrUnknown(),
+		Icon:     extutil.Ptr(targetIcon),
 		Table: discovery_kit_api.Table{
 			Columns: []discovery_kit_api.Column{
-				{Attribute: "steadybit.label"},
-				{Attribute: "robot.reportedBy"},
+				{Attribute: "grafana.alert-rule.name"},
+				{Attribute: "grafana.alert-rule.group"},
+				{Attribute: "grafana.alert-rule.datasource"},
 			},
 			OrderBy: []discovery_kit_api.OrderBy{
 				{
-					Attribute: "steadybit.label",
+					Attribute: "grafana.alert-rule.name",
 					Direction: "ASC",
 				},
 			},
@@ -73,10 +68,22 @@ func (d *alertDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 func (d *alertDiscovery) DescribeAttributes() []discovery_kit_api.AttributeDescription {
 	return []discovery_kit_api.AttributeDescription{
 		{
-			Attribute: "robot.reportedBy",
+			Attribute: "grafana.alert-rule.name",
 			Label: discovery_kit_api.PluralLabel{
-				One:   "Reported by",
-				Other: "Reported by",
+				One:   "Alert Rule",
+				Other: "Alert Rules",
+			},
+		}, {
+			Attribute: "grafana.alert-rule.group",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Grafana alert group",
+				Other: "Grafana alert groups",
+			},
+		}, {
+			Attribute: "grafana.alert-rule.datasource",
+			Label: discovery_kit_api.PluralLabel{
+				One:   "Grafana datasource",
+				Other: "Grafana datasources",
 			},
 		},
 	}

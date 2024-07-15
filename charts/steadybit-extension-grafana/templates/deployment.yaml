@@ -55,9 +55,9 @@ spec:
               memory: {{ .Values.resources.limits.memory }}
               cpu: {{ .Values.resources.limits.cpu }}
           env:
-            {{- if .Values.discovery.attributes.excludes.service }}
-            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_SERVICE
-              value: {{ join "," .Values.discovery.attributes.excludes.service | quote }}
+            {{- if .Values.discovery.attributes.excludes.alertrule }}
+            - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ALERTRULE
+              value: {{ join "," .Values.discovery.attributes.excludes.alertrule | quote }}
             {{- end }}
             {{- include "extensionlib.deployment.env" (list .) | nindent 12 }}
             - name: STEADYBIT_EXTENSION_SERVICE_TOKEN

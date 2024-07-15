@@ -7,10 +7,12 @@ a [pull request](https://github.com/steadybit/reliability-hub-db) and add a link
 
 ## Configuration
 
-| Environment Variable                                      | Helm value                           | Meaning                                                                                                               | Required | Default                 |
-|-----------------------------------------------------------|--------------------------------------|-----------------------------------------------------------------------------------------------------------------------|----------|-------------------------|
-| `STEADYBIT_EXTENSION_ROBOT_NAMES`                         |                                      | Comma-separated list of discoverable robots                                                                           | yes      | Bender,Terminator,R2-D2 |
-| `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ROBOT` | `discovery.attributes.excludes.robot | List of Robot Attributes which will be excluded during discovery. Checked by key equality and supporting trailing "*" | no       |                         |
+| Environment Variable                                          | Helm value                                | Meaning                                                                                                                    | Required | Default |
+|---------------------------------------------------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|----------|---------|
+| `STEADYBIT_EXTENSION_SERVICE_TOKEN`                           | `stackstate.serviceToken`                 | Grafana Service Token                                                                                                      | yes      |         |
+| `STEADYBIT_EXTENSION_API_BASE_URL`                            | `stackstate.apiBaseUrl`                   | Grafana API Base URL (example: https://yourcompany.grafana.io)                                                             | yes      |         |
+| `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ALERTRULE` | `discovery.attributes.excludes.alertrule` | List of Alert Rule Attributes which will be excluded during discovery. Checked by key equality and supporting trailing "*" | no       |         |
+
 
 The extension supports all environment variables provided by [steadybit/extension-kit](https://github.com/steadybit/extension-kit#environment-variables).
 

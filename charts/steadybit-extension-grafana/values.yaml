@@ -128,5 +128,5 @@ extraEnvFrom: []
 discovery:
   attributes:
     excludes:
-      # discovery.attributes.excludes.service -- List of attributes to exclude from discovery.
+      # discovery.attributes.excludes.alertrule -- List of attributes to exclude from discovery.
       service: []
