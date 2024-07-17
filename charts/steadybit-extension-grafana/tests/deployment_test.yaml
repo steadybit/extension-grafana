@@ -106,3 +106,18 @@ tests:
       priorityClassName: my-priority-class
     asserts:
       - matchSnapshot: {}
+  - it: manifest should match discovery exclusions
+    set:
+      discovery:
+        attributes:
+          excludes:
+            alertrule: ["test"]
+    asserts:
+      - matchSnapshot: {}
+  - it: manifest should match service token
+    set:
+      grafana:
+        serviceToken: "token"
+        apiBaseUrl: "https://my-grafana"
+    asserts:
+      - matchSnapshot: {}

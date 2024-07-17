@@ -1,3 +1,163 @@
+manifest should match discovery exclusions:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        steadybit.com/discovery-disabled: "true"
+        steadybit.com/extension: "true"
+      name: RELEASE-NAME-steadybit-extension-grafana
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: steadybit-extension-grafana
+      template:
+        metadata:
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
+          labels:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: steadybit-extension-grafana
+            steadybit.com/discovery-disabled: "true"
+            steadybit.com/extension: "true"
+        spec:
+          containers:
+            - env:
+                - name: STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ALERTRULE
+                  value: test
+                - name: STEADYBIT_LOG_LEVEL
+                  value: INFO
+                - name: STEADYBIT_LOG_FORMAT
+                  value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
+              image: ghcr.io/steadybit/extension-grafana:v0.0.0
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 5
+                httpGet:
+                  path: /health/liveness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+              name: extension
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /health/readiness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 50m
+                  memory: 32Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+                runAsGroup: 10000
+                runAsNonRoot: true
+                runAsUser: 10000
+              volumeMounts: null
+          serviceAccountName: steadybit-extension-grafana
+          volumes: null
+manifest should match service token:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        steadybit.com/discovery-disabled: "true"
+        steadybit.com/extension: "true"
+      name: RELEASE-NAME-steadybit-extension-grafana
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: steadybit-extension-grafana
+      template:
+        metadata:
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
+          labels:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: steadybit-extension-grafana
+            steadybit.com/discovery-disabled: "true"
+            steadybit.com/extension: "true"
+        spec:
+          containers:
+            - env:
+                - name: STEADYBIT_LOG_LEVEL
+                  value: INFO
+                - name: STEADYBIT_LOG_FORMAT
+                  value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: https://my-grafana
+              image: ghcr.io/steadybit/extension-grafana:v0.0.0
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 5
+                httpGet:
+                  path: /health/liveness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+              name: extension
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /health/readiness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 50m
+                  memory: 32Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+                runAsGroup: 10000
+                runAsNonRoot: true
+                runAsUser: 10000
+              volumeMounts: null
+          serviceAccountName: steadybit-extension-grafana
+          volumes: null
 manifest should match snapshot using podAnnotations and Labels:
   1: |
     apiVersion: apps/v1
