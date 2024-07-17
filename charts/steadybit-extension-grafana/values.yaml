@@ -129,4 +129,4 @@ discovery:
   attributes:
     excludes:
       # discovery.attributes.excludes.alertrule -- List of attributes to exclude from discovery.
-      service: []
+      alertrule: []
