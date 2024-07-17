@@ -91,11 +91,13 @@ func onExperimentStepStarted(event event_kit_api.EventRequestBody) (*AnnotationB
 }
 
 func onExperimentCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
-	return &AnnotationBody{TimeEnd: event.ExperimentExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
+	tags := getExecutionTags(event)
+	return &AnnotationBody{Tags: tags, Time: event.ExperimentExecution.StartedTime.UnixMilli(), TimeEnd: event.ExperimentExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
 }
 
 func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
-	return &AnnotationBody{TimeEnd: event.ExperimentStepExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
+	tags := getStepTags(*event.ExperimentStepExecution)
+	return &AnnotationBody{Tags: tags, Time: event.ExperimentStepExecution.StartedTime.UnixMilli(), TimeEnd: event.ExperimentStepExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
 }
 
 func getActionName(stepExecution event_kit_api.ExperimentStepExecution) string {
@@ -191,7 +193,9 @@ func sendAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 			SetContext(ctx).
 			SetResult(&annotationsFound).
 			SetQueryParamsFromValues(url.Values{
-				"tags": annotation.Tags,
+				"tags":  annotation.Tags,
+				"limit": {"10"},
+				"from":  {fmt.Sprintf("%v", annotation.Time)},
 			}).
 			Get("/api/annotations")
 
