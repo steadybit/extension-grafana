@@ -11,6 +11,35 @@ entries:
         - name: Steadybit reliability hub
           url: https://hub.steadybit.com
     apiVersion: v2
+    appVersion: v1.0.0
+    created: "2024-07-17T12:39:54.730369566Z"
+    dependencies:
+    - name: extensionlib
+      repository: https://steadybit.github.io/helm-charts
+      version: ^1.4.4
+    description: Steadybit grafana extension Helm chart for Kubernetes.
+    digest: c6b07ab2f2d578e9fe0542e0e2d3898cbb6f868cb82cc479cbabe1bb23e1d25c
+    home: https://www.steadybit.com/
+    icon: https://steadybit-website-assets.s3.amazonaws.com/logo-symbol-transparent.png
+    maintainers:
+    - email: antoine@steadybit.com
+      name: achoimet
+    name: steadybit-extension-grafana
+    sources:
+    - https://github.com/steadybit/extension-grafana
+    urls:
+    - https://github.com/steadybit/extension-grafana/releases/download/steadybit-extension-grafana-1.1.7/steadybit-extension-grafana-1.1.7.tgz
+    version: 1.1.7
+  - annotations:
+      artifacthub.io/images: |
+        - name: logo
+          image: https://steadybit-website-assets.s3.amazonaws.com/logo-symbol-transparent.png
+      artifacthub.io/links: |-
+        - name: Steadybit website
+          url: https://www.steadybit.com
+        - name: Steadybit reliability hub
+          url: https://hub.steadybit.com
+    apiVersion: v2
     appVersion: v1.0.10
     created: "2024-07-17T12:15:16.410685059Z"
     dependencies:
@@ -59,4 +88,4 @@ entries:
     urls:
     - https://github.com/steadybit/extension-grafana/releases/download/steadybit-extension-grafana-1.1.5/steadybit-extension-grafana-1.1.5.tgz
     version: 1.1.5
-generated: "2024-07-17T12:15:16.410698044Z"
+generated: "2024-07-17T12:39:54.730382601Z"
