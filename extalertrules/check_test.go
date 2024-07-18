@@ -12,8 +12,8 @@ func TestPrepareExtractsState(t *testing.T) {
 	// Given
 	request := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
 		Config: map[string]interface{}{
-			"duration":      1000 * 60,
-			"expectedState": "firing",
+			"duration":          1000 * 60,
+			"expectedStateList": []string{"firing"},
 		},
 		Target: &action_kit_api.Target{
 			Attributes: map[string][]string{
@@ -42,6 +42,6 @@ func TestPrepareExtractsState(t *testing.T) {
 	require.Equal(t, "prometheus-GoldenSignalsAlerts-test_firing", state.AlertRuleId)
 	//require.Equal(t, "prometheus", state.AlertRuleDatasource)
 	require.Equal(t, "test_firing", state.AlertRuleName)
-	require.Equal(t, "firing", state.ExpectedState)
+	require.Equal(t, "firing", state.ExpectedState[0])
 
 }

@@ -37,7 +37,9 @@ type AlertRuleCheckState struct {
 	AlertRuleDatasource string
 	AlertRuleName       string
 	End                 time.Time
-	ExpectedState       string
+	ExpectedState       []string
+	StatusCheckMode     string
+	StatusCheckSuccess  bool
 }
 
 func NewAlertRuleStateCheckAction() action_kit_sdk.Action[AlertRuleCheckState] {
@@ -51,7 +53,7 @@ func (m *AlertRuleStateCheckAction) NewEmptyState() AlertRuleCheckState {
 func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription {
 	return action_kit_api.ActionDescription{
 		Id:          fmt.Sprintf("%s.check", TargetType),
-		Label:       "Grafana Prometheus Alert Rule",
+		Label:       "Alert Rule Check",
 		Description: "collects information about the alert rule state and optionally verifies that the state value is the one expected.",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:        extutil.Ptr(targetIcon),
@@ -80,10 +82,10 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 				Required:     extutil.Ptr(true),
 			},
 			{
-				Name:        "expectedState",
-				Label:       "Expected State",
+				Name:        "expectedStateList",
+				Label:       "Expected State List",
 				Description: extutil.Ptr(""),
-				Type:        action_kit_api.String,
+				Type:        action_kit_api.StringArray,
 				Options: extutil.Ptr([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "Firing",
@@ -104,6 +106,25 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 				}),
 				Required: extutil.Ptr(false),
 				Order:    extutil.Ptr(2),
+			},
+			{
+				Name:         "statusCheckMode",
+				Label:        "Status Check Mode",
+				Description:  extutil.Ptr("How often should the status be expected?"),
+				Type:         action_kit_api.String,
+				DefaultValue: extutil.Ptr(statusCheckModeAllTheTime),
+				Options: extutil.Ptr([]action_kit_api.ParameterOption{
+					action_kit_api.ExplicitParameterOption{
+						Label: "All the time",
+						Value: statusCheckModeAllTheTime,
+					},
+					action_kit_api.ExplicitParameterOption{
+						Label: "At least once",
+						Value: statusCheckModeAtLeastOnce,
+					},
+				}),
+				Required: extutil.Ptr(true),
+				Order:    extutil.Ptr(3),
 			},
 		},
 		Widgets: extutil.Ptr([]action_kit_api.Widget{
@@ -145,9 +166,14 @@ func (m *AlertRuleStateCheckAction) Prepare(_ context.Context, state *AlertRuleC
 	duration := request.Config["duration"].(float64)
 	end := time.Now().Add(time.Millisecond * time.Duration(duration))
 
-	var expectedState string
-	if request.Config["expectedState"] != nil {
-		expectedState = fmt.Sprintf("%v", request.Config["expectedState"])
+	var expectedState []string
+	if request.Config["expectedStateList"] != nil {
+		expectedState = extutil.ToStringArray(request.Config["expectedStateList"])
+	}
+
+	var statusCheckMode string
+	if request.Config["statusCheckMode"] != nil {
+		statusCheckMode = fmt.Sprintf("%v", request.Config["statusCheckMode"])
 	}
 
 	state.AlertRuleId = alertRuleId[0]
@@ -155,6 +181,7 @@ func (m *AlertRuleStateCheckAction) Prepare(_ context.Context, state *AlertRuleC
 	state.AlertRuleName = request.Target.Attributes["grafana.alert-rule.name"][0]
 	state.End = end
 	state.ExpectedState = expectedState
+	state.StatusCheckMode = statusCheckMode
 
 	return nil, nil
 }
@@ -200,14 +227,31 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 
 	completed := now.After(state.End)
 	var checkError *action_kit_api.ActionKitError
-	if len(state.ExpectedState) > 0 && alertRule.State != state.ExpectedState {
-		checkError = extutil.Ptr(action_kit_api.ActionKitError{
-			Title: fmt.Sprintf("AlertRule '%s' has status '%s' whereas '%s' is expected.",
-				alertRule.Name,
-				alertRule.State,
-				state.ExpectedState),
-			Status: extutil.Ptr(action_kit_api.Failed),
-		})
+
+	if len(state.ExpectedState) > 0 {
+		if state.StatusCheckMode == statusCheckModeAllTheTime {
+			if !slices.Contains(state.ExpectedState, alertRule.State) {
+				checkError = extutil.Ptr(action_kit_api.ActionKitError{
+					Title: fmt.Sprintf("AlertRule '%s' has state '%s' whereas '%s' is expected.",
+						alertRule.Name,
+						alertRule.State,
+						state.ExpectedState),
+					Status: extutil.Ptr(action_kit_api.Failed),
+				})
+			}
+		} else if state.StatusCheckMode == statusCheckModeAtLeastOnce {
+			if slices.Contains(state.ExpectedState, alertRule.State) {
+				state.StatusCheckSuccess = true
+			}
+			if completed && !state.StatusCheckSuccess {
+				checkError = extutil.Ptr(action_kit_api.ActionKitError{
+					Title: fmt.Sprintf("AlertRule '%s' didn't have status '%s' at least once.",
+						alertRule.Name,
+						state.ExpectedState),
+					Status: extutil.Ptr(action_kit_api.Failed),
+				})
+			}
+		}
 	}
 
 	metrics := []action_kit_api.Metric{
