@@ -83,7 +83,7 @@ func onExperimentStepStarted(event event_kit_api.EventRequestBody) (*AnnotationB
 	startTime := time.Now().UnixMilli()
 	if event.ExperimentStepExecution != nil {
 		if !event.ExperimentStepExecution.StartedTime.IsZero() {
-			startTime = event.ExperimentExecution.StartedTime.UnixMilli()
+			startTime = event.ExperimentStepExecution.StartedTime.UnixMilli()
 		}
 	}
 
