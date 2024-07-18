@@ -280,8 +280,6 @@ func toMetric(alertRuleID string, alertRule *AlertRule, now time.Time) *action_k
 		state = "danger"
 	}
 
-	uiBaseUrl := config.Config.ApiBaseUrl[:(len(config.Config.ApiBaseUrl) - 3)]
-
 	return extutil.Ptr(action_kit_api.Metric{
 		Name: extutil.Ptr("grafana_alert_rule_state"),
 		Metric: map[string]string{
@@ -289,7 +287,7 @@ func toMetric(alertRuleID string, alertRule *AlertRule, now time.Time) *action_k
 			"grafana.alert-rule.name": alertRule.Name,
 			"state":                   state,
 			"tooltip":                 tooltip,
-			"url":                     fmt.Sprintf("%s/alerting/list?search=%s", uiBaseUrl, url.QueryEscape(alertRule.Name)),
+			"url":                     fmt.Sprintf("%s/alerting/list?search=%s", config.Config.ApiBaseUrl, url.QueryEscape(alertRule.Name)),
 		},
 		Timestamp: now,
 		Value:     0,
