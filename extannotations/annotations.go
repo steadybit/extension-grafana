@@ -304,7 +304,7 @@ func patchAnnotation(ctx context.Context, client *resty.Client, annotation *Anno
 		Put("/api/annotations/" + annotation.ID)
 
 	if err != nil {
-		log.Err(err).Msgf("Failed to patch annotation ID %d. Full response: %v", annotation.ID, res.String())
+		log.Err(err).Msgf("Failed to patch annotation ID %s. Full response: %v", annotation.ID, res.String())
 		return
 	}
 
