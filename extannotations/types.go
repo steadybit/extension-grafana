@@ -9,7 +9,7 @@ package extannotations
 
 type AnnotationResponse struct {
 	Message string `json:"message"`
-	Id      string `json:"id"`
+	ID      int    `json:"id"`
 }
 
 type Annotation struct {
@@ -36,8 +36,4 @@ type AnnotationBody struct {
 	Text      string   `json:"text"`
 	NeedPatch bool
 	ID        string
-}
-
-type GetAnnotationResponse struct {
-	Annotations []Annotation
 }
