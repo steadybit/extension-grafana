@@ -186,6 +186,7 @@ func parseBodyToEventRequestBody(body []byte) (event_kit_api.EventRequestBody, e
 }
 
 func sendAnnotations(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {
+	log.Debug().Msgf("Sending annotation: %v", annotation)
 	if annotation.NeedPatch {
 		handlePatchAnnotation(ctx, client, annotation)
 	} else {
