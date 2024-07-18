@@ -96,12 +96,16 @@ func onExperimentStepStarted(event event_kit_api.EventRequestBody) (*AnnotationB
 }
 
 func onExperimentCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
-	tags := getExecutionTags(event)
+	tags := getEventBaseTags(event)
+	tags = append(tags, getExecutionTags(event)...)
+	tags = removeDuplicates(tags)
 	return &AnnotationBody{Tags: tags, Time: event.ExperimentExecution.StartedTime.UnixMilli(), TimeEnd: event.ExperimentExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
 }
 
 func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
-	tags := getStepTags(*event.ExperimentStepExecution)
+	tags := getEventBaseTags(event)
+	tags = append(tags, getStepTags(*event.ExperimentStepExecution)...)
+	tags = removeDuplicates(tags)
 	return &AnnotationBody{Tags: tags, Time: event.ExperimentStepExecution.StartedTime.UnixMilli(), TimeEnd: event.ExperimentStepExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
 }
 
