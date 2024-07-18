@@ -35,4 +35,5 @@ type AnnotationBody struct {
 	TimeEnd   int64    `json:"timeEnd"`
 	Text      string   `json:"text"`
 	NeedPatch bool
+	ID        string
 }

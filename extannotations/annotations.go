@@ -15,6 +15,7 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -184,67 +185,154 @@ func parseBodyToEventRequestBody(body []byte) (event_kit_api.EventRequestBody, e
 	return event, err
 }
 
+//func sendAnnotations(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {
+//
+//	if annotation.NeedPatch {
+//		// Find the annotation
+//		var annotationsFound []Annotation
+//		res, err := client.R().
+//			SetContext(ctx).
+//			SetResult(&annotationsFound).
+//			SetQueryParamsFromValues(url.Values{
+//				"tags":  annotation.Tags,
+//				"limit": {"10"},
+//				"from":  {fmt.Sprintf("%v", annotation.Time)},
+//			}).
+//			Get("/api/annotations")
+//
+//		if err != nil {
+//			log.Err(err).Msgf("Failed to find annotation with these tags %s. Full response: %v", annotation.Tags, res.String())
+//		}
+//
+//		if len(annotationsFound) == 1 {
+//			var annotationResponse AnnotationResponse
+//			res, err := client.R().
+//				SetContext(ctx).
+//				SetResult(&annotationResponse).
+//				SetBody(fmt.Sprintf(`{"timeEnd": %d}`, annotation.TimeEnd)).
+//				Put("/api/annotations/")
+//
+//			if err != nil {
+//				log.Err(err).Msgf("Failed to patch annotation ID %d. Full response: %v", annotationsFound[0].ID, res.String())
+//			}
+//
+//			if !res.IsSuccess() {
+//				log.Err(err).Msgf("Grafana API responded with unexpected status code %d while patching annotations. Full response: %v", res.StatusCode(), res.String())
+//			}
+//		} else if len(annotationsFound) == 0 {
+//			log.Err(err).Msgf("Failed to find annotation with tags %s. Full response: %v", annotation.Tags, err)
+//		} else if len(annotationsFound) > 1 {
+//			log.Err(err).Msgf("Found multiple annotations with tags %s. Full response: %v", annotation.Tags, err)
+//		}
+//
+//	} else {
+//		annotationBytes, err := json.Marshal(annotation)
+//		if err != nil {
+//			log.Err(err).Msgf("Failed to marshal annotation %v. Full response: %v", annotation, err)
+//		}
+//
+//		var annotationResponse AnnotationResponse
+//		res, err := client.R().
+//			SetContext(ctx).
+//			SetResult(&annotationResponse).
+//			SetBody(annotationBytes).
+//			Post("/api/annotations")
+//
+//		if err != nil {
+//			log.Err(err).Msgf("Failed to post annotation, body: %v. Full response: %v", annotationBytes, res.String())
+//		}
+//
+//		if !res.IsSuccess() {
+//			log.Err(err).Msgf("Grafana API responded with unexpected status code %d while posting annotations. Full response: %v", res.StatusCode(), res.String())
+//		}
+//
+//	}
+//
+//}
+
 func sendAnnotations(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {
-
 	if annotation.NeedPatch {
-		// Find the annotation
-		var annotationsFound []Annotation
-		res, err := client.R().
-			SetContext(ctx).
-			SetResult(&annotationsFound).
-			SetQueryParamsFromValues(url.Values{
-				"tags":  annotation.Tags,
-				"limit": {"10"},
-				"from":  {fmt.Sprintf("%v", annotation.Time)},
-			}).
-			Get("/api/annotations")
-
-		if err != nil {
-			log.Err(err).Msgf("Failed to find annotation with these tags %s. Full response: %v", annotation.Tags, res.String())
-		}
-
-		if len(annotationsFound) == 1 {
-			var annotationResponse AnnotationResponse
-			res, err := client.R().
-				SetContext(ctx).
-				SetResult(&annotationResponse).
-				SetBody(fmt.Sprintf(`{"timeEnd": %d}`, annotation.TimeEnd)).
-				Put("/api/annotations/")
-
-			if err != nil {
-				log.Err(err).Msgf("Failed to patch annotation ID %d. Full response: %v", annotationsFound[0].ID, res.String())
-			}
-
-			if !res.IsSuccess() {
-				log.Err(err).Msgf("Grafana API responded with unexpected status code %d while patching annotations. Full response: %v", res.StatusCode(), res.String())
-			}
-		} else if len(annotationsFound) == 0 {
-			log.Err(err).Msgf("Failed to find annotation with tags %s. Full response: %v", annotation.Tags, err)
-		} else if len(annotationsFound) > 1 {
-			log.Err(err).Msgf("Found multiple annotations with tags %s. Full response: %v", annotation.Tags, err)
-		}
-
+		handlePatchAnnotation(ctx, client, annotation)
 	} else {
-		annotationBytes, err := json.Marshal(annotation)
-		if err != nil {
-			log.Err(err).Msgf("Failed to marshal annotation %v. Full response: %v", annotation, err)
-		}
+		handlePostAnnotation(ctx, client, annotation)
+	}
+}
 
-		var annotationResponse AnnotationResponse
-		res, err := client.R().
-			SetContext(ctx).
-			SetResult(&annotationResponse).
-			SetBody(annotationBytes).
-			Post("/api/annotations")
-
-		if err != nil {
-			log.Err(err).Msgf("Failed to post annotation, body: %v. Full response: %v", annotationBytes, res.String())
-		}
-
-		if !res.IsSuccess() {
-			log.Err(err).Msgf("Grafana API responded with unexpected status code %d while posting annotations. Full response: %v", res.StatusCode(), res.String())
-		}
-
+func handlePatchAnnotation(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {
+	annotationsFound, err := findAnnotations(ctx, client, annotation)
+	if err != nil {
+		log.Err(err).Msgf("Failed to find annotation with these tags %s. Full response: %v", annotation.Tags, err)
+		return
 	}
 
+	switch len(annotationsFound) {
+	case 1:
+		annotation.ID = strconv.Itoa(annotationsFound[0].ID)
+		patchAnnotation(ctx, client, annotation)
+	case 0:
+		log.Err(err).Msgf("Failed to find annotation with tags %s. Full response: %v", annotation.Tags, err)
+	default:
+		log.Err(err).Msgf("Found multiple annotations with tags %s. Full response: %v", annotation.Tags, err)
+	}
+}
+
+func findAnnotations(ctx context.Context, client *resty.Client, annotation *AnnotationBody) ([]Annotation, error) {
+	var annotationsFound []Annotation
+	_, err := client.R().
+		SetContext(ctx).
+		SetResult(&annotationsFound).
+		SetQueryParamsFromValues(url.Values{
+			"tags":  annotation.Tags,
+			"limit": {"10"},
+			"from":  {fmt.Sprintf("%v", annotation.Time)},
+		}).
+		Get("/api/annotations")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return annotationsFound, nil
+}
+
+func patchAnnotation(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {
+	var annotationResponse AnnotationResponse
+	res, err := client.R().
+		SetContext(ctx).
+		SetResult(&annotationResponse).
+		SetBody(fmt.Sprintf(`{"timeEnd": %d}`, annotation.TimeEnd)).
+		Put("/api/annotations/" + annotation.ID)
+
+	if err != nil {
+		log.Err(err).Msgf("Failed to patch annotation ID %d. Full response: %v", annotation.ID, res.String())
+		return
+	}
+
+	if !res.IsSuccess() {
+		log.Err(err).Msgf("Grafana API responded with unexpected status code %d while patching annotations. Full response: %v", res.StatusCode(), res.String())
+	}
+}
+
+func handlePostAnnotation(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {
+	annotationBytes, err := json.Marshal(annotation)
+	if err != nil {
+		log.Err(err).Msgf("Failed to marshal annotation %v. Full response: %v", annotation, err)
+		return
+	}
+
+	var annotationResponse AnnotationResponse
+	res, err := client.R().
+		SetContext(ctx).
+		SetResult(&annotationResponse).
+		SetBody(annotationBytes).
+		Post("/api/annotations")
+
+	if err != nil {
+		log.Err(err).Msgf("Failed to post annotation, body: %v. Full response: %v", annotationBytes, res.String())
+		return
+	}
+
+	if !res.IsSuccess() {
+		log.Err(err).Msgf("Grafana API responded with unexpected status code %d while posting annotations. Full response: %v", res.StatusCode(), res.String())
+	}
 }
