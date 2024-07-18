@@ -110,7 +110,7 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 			{
 				Name:         "statusCheckMode",
 				Label:        "Status Check Mode",
-				Description:  extutil.Ptr("How often should the status be expected?"),
+				Description:  extutil.Ptr("How often should the state be checked ?"),
 				Type:         action_kit_api.String,
 				DefaultValue: extutil.Ptr(statusCheckModeAllTheTime),
 				Options: extutil.Ptr([]action_kit_api.ParameterOption{
@@ -255,7 +255,7 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 	}
 
 	metrics := []action_kit_api.Metric{
-		*toMetric(alertRule, now),
+		*toMetric(state.AlertRuleId, alertRule, now),
 	}
 
 	return &action_kit_api.StatusResult{
@@ -265,7 +265,7 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 	}, nil
 }
 
-func toMetric(alertRule *AlertRule, now time.Time) *action_kit_api.Metric {
+func toMetric(alertRuleID string, alertRule *AlertRule, now time.Time) *action_kit_api.Metric {
 	var tooltip string
 	var state string
 
@@ -285,11 +285,11 @@ func toMetric(alertRule *AlertRule, now time.Time) *action_kit_api.Metric {
 	return extutil.Ptr(action_kit_api.Metric{
 		Name: extutil.Ptr("grafana_alert_rule_state"),
 		Metric: map[string]string{
-			"grafana.alert-rule.name":            alertRule.Name,
-			"grafana.alert-rule.last-evaluation": alertRule.LastEvaluation.Format("2006-01-02 15:04:05"),
-			"state":                              state,
-			"tooltip":                            tooltip,
-			"url":                                fmt.Sprintf("%s/alerting/list?search=%s", uiBaseUrl, url.QueryEscape(alertRule.Name)),
+			"grafana.alert-rule.id":   alertRuleID,
+			"grafana.alert-rule.name": alertRule.Name,
+			"state":                   state,
+			"tooltip":                 tooltip,
+			"url":                     fmt.Sprintf("%s/alerting/list?search=%s", uiBaseUrl, url.QueryEscape(alertRule.Name)),
 		},
 		Timestamp: now,
 		Value:     0,
