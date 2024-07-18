@@ -20,6 +20,7 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"net/url"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -175,7 +176,7 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 	res, err := client.R().
 		SetContext(ctx).
 		SetResult(&grafanaResponse).
-		Get("/api/prometheus/" + state.AlertRuleDatasource + "/api/v1/rules")
+		Get("/api/prometheus/" + strings.ToLower(state.AlertRuleDatasource) + "/api/v1/rules")
 
 	if err != nil {
 		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to retrieve alerts states from Grafana for Datasource %s. Full response: %v", state.AlertRuleDatasource, res.String()), err))

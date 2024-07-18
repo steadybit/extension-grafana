@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_test/e2e"
+	actValidate "github.com/steadybit/action-kit/go/action_kit_test/validate"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_test/validate"
 	"github.com/steadybit/extension-kit/extlogging"
@@ -49,6 +50,10 @@ func TestWithMinikube(t *testing.T) {
 		{
 			Name: "test discovery",
 			Test: testDiscovery,
+		},
+		{
+			Name: "validate Actions",
+			Test: validateActions,
 		},
 		{
 			Name: "alert rule check meets expectations",
@@ -192,4 +197,8 @@ func testDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	assert.Equal(t, target.Attributes["grafana.alert-rule.state"], []string{"firing"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.datasource"], []string{"Prometheus"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.name"], []string{"test_firing"})
+}
+
+func validateActions(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
+	assert.NoError(t, actValidate.ValidateEndpointReferences("/", e.Client))
 }
