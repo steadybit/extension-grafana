@@ -37,3 +37,7 @@ type AnnotationBody struct {
 	NeedPatch bool
 	ID        string
 }
+
+type GetAnnotationResponse struct {
+	Annotations []Annotation
+}
