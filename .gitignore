@@ -4,3 +4,4 @@
 /licenses
 /snyk.sarif
 .idea
+.env
