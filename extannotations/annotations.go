@@ -303,5 +303,5 @@ func selectTagsForSearch(tags []string) []string {
 		searchTags = append(searchTags, "event_name:experiment.execution.created")
 	}
 
-	return tags
+	return searchTags
 }
