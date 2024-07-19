@@ -15,7 +15,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
-	"time"
 )
 
 type mockServer struct {
@@ -115,11 +114,10 @@ func (m *mockServer) viewPrometheusAlertRules() extalertrules.AlertsStates {
 				Name: "GoldenSignalsAlerts",
 				AlertsRules: []extalertrules.AlertRule{
 					{
-						State:          "firing",
-						Name:           "test_firing",
-						Health:         "ok",
-						Type:           "alerting",
-						LastEvaluation: time.Now().Add(time.Duration(-10) * time.Minute),
+						State:  "firing",
+						Name:   "test_firing",
+						Health: "ok",
+						Type:   "alerting",
 					},
 				},
 			},
@@ -138,11 +136,10 @@ func (m *mockServer) viewGrafanaAlertRules() extalertrules.AlertsStates {
 				Name: "Trivy",
 				AlertsRules: []extalertrules.AlertRule{
 					{
-						State:          "inactive",
-						Name:           "test_inactive",
-						Health:         "ok",
-						Type:           "alerting",
-						LastEvaluation: time.Now().Add(time.Duration(-10) * time.Minute),
+						State:  "inactive",
+						Name:   "test_inactive",
+						Health: "ok",
+						Type:   "alerting",
 					},
 				},
 			},
@@ -161,11 +158,10 @@ func (m *mockServer) viewLokiAlertRules() extalertrules.AlertsStates {
 				Name: "GoldenSignalsAlerts",
 				AlertsRules: []extalertrules.AlertRule{
 					{
-						State:          "normal",
-						Name:           "test_normal",
-						Health:         "ok",
-						Type:           "alerting",
-						LastEvaluation: time.Now().Add(time.Duration(-10) * time.Minute),
+						State:  "normal",
+						Name:   "test_normal",
+						Health: "ok",
+						Type:   "alerting",
 					},
 				},
 			},
