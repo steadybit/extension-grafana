@@ -252,7 +252,7 @@ func patchAnnotation(ctx context.Context, client *resty.Client, annotation *Anno
 		SetContext(ctx).
 		SetResult(&annotationResponse).
 		SetBody(fmt.Sprintf(`{"timeEnd": %d}`, annotation.TimeEnd)).
-		Put("/api/annotations/" + annotation.ID)
+		Patch("/api/annotations/" + annotation.ID)
 
 	if err != nil {
 		log.Err(err).Msgf("Failed to patch annotation ID %s. Full response: %v", annotation.ID, res.String())
