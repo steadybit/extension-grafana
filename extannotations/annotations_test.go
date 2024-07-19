@@ -101,7 +101,7 @@ func TestFindAnnotations(t *testing.T) {
 	defer httpmock.DeactivateAndReset()
 
 	testAnnotation := &Annotation{
-		Tags:     []string{"tag1", "tag2"},
+		Tags:     []string{"event_name:experiment.execution.completed", "execution_id:73983", "experiment_key:ADM-891", "experiment_name:test extension-grafana", "source:Steadybit"},
 		Time:     time.Date(2024, 7, 18, 8, 0, 0, 0, time.UTC).UnixMilli(),
 		TimeEnd:  time.Date(2024, 7, 18, 9, 0, 0, 0, time.UTC).UnixMilli(),
 		ID:       1,
@@ -117,7 +117,7 @@ func TestFindAnnotations(t *testing.T) {
 	}
 
 	// Mock the get request
-	expectedQuery := "from=1721289600000&limit=10&tags=tag1&tags=tag2"
+	expectedQuery := "limit=10&tags=execution_id%3A73983&tags=experiment_key%3AADM-891&tags=event_name%3Aexperiment.execution.created"
 	httpmock.RegisterResponderWithQuery("GET", "/api/annotations", expectedQuery,
 		httpmock.NewJsonResponderOrPanic(200, []Annotation{*testAnnotation}))
 

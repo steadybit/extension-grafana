@@ -233,6 +233,11 @@ func findAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 		}).
 		Get("/api/annotations")
 
+	//log.Debug().Msg(url.Values{
+	//	"tags":  selectTagsForSearch(annotation.Tags),
+	//	"limit": {"10"},
+	//}.Encode())
+
 	if err != nil {
 		return nil, err
 	}
