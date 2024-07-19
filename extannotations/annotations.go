@@ -98,17 +98,27 @@ func onExperimentStepStarted(event event_kit_api.EventRequestBody) (*AnnotationB
 }
 
 func onExperimentCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
+	log.Debug().Msg("onExperimentStepCompleted, tagging:")
 	tags := getEventBaseTags(event)
+	log.Debug().Msgf("getEventBaseTags: %v", tags)
 	tags = append(tags, getExecutionTags(event)...)
+	log.Debug().Msgf("getExecutionTags: %v", tags)
 	tags = removeDuplicates(tags)
+	log.Debug().Msgf("removeDuplicates: %v", tags)
 	return &AnnotationBody{Tags: tags, Time: event.ExperimentExecution.StartedTime.UnixMilli(), TimeEnd: event.ExperimentExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
 }
 
 func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
+	log.Debug().Msg("onExperimentStepCompleted, tagging:")
 	tags := getEventBaseTags(event)
+	log.Debug().Msgf("getEventBaseTags: %v", tags)
 	tags = append(tags, getExecutionTags(event)...)
+	log.Debug().Msgf("getExecutionTags: %v", tags)
 	tags = append(tags, getStepTags(*event.ExperimentStepExecution)...)
+	log.Debug().Msgf("getStepTags: %v", tags)
 	tags = removeDuplicates(tags)
+	log.Debug().Msgf("removeDuplicates: %v", tags)
+
 	return &AnnotationBody{Tags: tags, Time: event.ExperimentStepExecution.StartedTime.UnixMilli(), TimeEnd: event.ExperimentStepExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
 }
 
