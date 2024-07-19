@@ -153,14 +153,14 @@ func TestPatchAnnotation(t *testing.T) {
 	}
 
 	// Mock the put request
-	httpmock.RegisterResponder("PUT", "/api/annotations/1",
+	httpmock.RegisterResponder("PATCH", "/api/annotations/1",
 		httpmock.NewStringResponder(200, `{"status":"success"}`))
 
 	// Call the function
 	patchAnnotation(ctx, client, annotation)
 
 	// Assertions
-	assert.True(t, httpmock.GetCallCountInfo()["PUT /api/annotations/1"] > 0)
+	assert.True(t, httpmock.GetCallCountInfo()["PATCH /api/annotations/1"] > 0)
 }
 
 func TestOnExperimentStepStarted(t *testing.T) {
@@ -225,7 +225,7 @@ func TestOnExperimentStepStarted(t *testing.T) {
 		assert.Contains(t, annotation.Tags, "experiment_name:test")
 		assert.Contains(t, annotation.Tags, "step_action_name:test")
 		assert.Contains(t, annotation.Tags, "step_custom_label:test")
-		assert.Equal(t, event.ExperimentExecution.StartedTime.UnixMilli(), annotation.Time)
+		assert.Equal(t, event.ExperimentStepExecution.StartedTime.UnixMilli(), annotation.Time)
 		assert.False(t, annotation.NeedPatch)
 	})
 }
