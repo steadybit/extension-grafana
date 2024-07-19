@@ -89,7 +89,7 @@ func onExperimentStepStarted(event event_kit_api.EventRequestBody) (*AnnotationB
 
 	return &AnnotationBody{
 		Tags:      tags,
-		Text:      "Experiment " + event.ExperimentExecution.ExperimentKey + "Step " + getActionName(*event.ExperimentStepExecution),
+		Text:      "Step " + getActionName(*event.ExperimentStepExecution),
 		Time:      startTime,
 		NeedPatch: false,
 	}, nil
