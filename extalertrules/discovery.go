@@ -130,14 +130,12 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 					TargetType: TargetType,
 					Label:      rule.Name,
 					Attributes: map[string][]string{
-						"grafana.alert-rule.health":          {rule.Health},
-						"grafana.alert-rule.last-evaluation": {rule.LastEvaluation.Format("2006-01-02 15:04:05")},
-						"grafana.alert-rule.type":            {rule.Type},
-						"grafana.alert-rule.state":           {rule.State},
-						"grafana.alert-rule.datasource":      {datasource.Name},
-						"grafana.alert-rule.group":           {alertGroup.Name},
-						"grafana.alert-rule.name":            {rule.Name},
-						"grafana.alert-rule.id":              {Id},
+						"grafana.alert-rule.type":       {rule.Type},
+						"grafana.alert-rule.state":      {rule.State},
+						"grafana.alert-rule.datasource": {datasource.Name},
+						"grafana.alert-rule.group":      {alertGroup.Name},
+						"grafana.alert-rule.name":       {rule.Name},
+						"grafana.alert-rule.id":         {Id},
 					}})
 			}
 		}
