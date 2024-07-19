@@ -15,7 +15,9 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -226,9 +228,8 @@ func findAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 		SetContext(ctx).
 		SetResult(&annotationsFound).
 		SetQueryParamsFromValues(url.Values{
-			"tags":  annotation.Tags,
+			"tags":  selectTagsForSearch(annotation.Tags),
 			"limit": {"10"},
-			"from":  {fmt.Sprintf("%v", annotation.Time)},
 		}).
 		Get("/api/annotations")
 
@@ -279,4 +280,28 @@ func handlePostAnnotation(ctx context.Context, client *resty.Client, annotation 
 	if !res.IsSuccess() {
 		log.Err(err).Msgf("Grafana API responded with unexpected status code %d while posting annotations. Full response: %v", res.StatusCode(), res.String())
 	}
+}
+
+func selectTagsForSearch(tags []string) []string {
+	searchTags := make([]string, 0)
+	for _, v := range tags {
+		if strings.Contains(v, "execution_id") {
+			searchTags = append(searchTags, v)
+		}
+		if strings.Contains(v, "experiment_key") {
+			searchTags = append(searchTags, v)
+		}
+		if strings.Contains(v, "step_action_id") {
+			searchTags = append(searchTags, v)
+			searchTags = append(searchTags, "event_name:experiment.execution.step-started")
+		}
+		if strings.Contains(v, "step_action_id") {
+			searchTags = append(searchTags, v)
+		}
+	}
+	if !slices.Contains(searchTags, "event_name:experiment.execution.step-started") {
+		searchTags = append(searchTags, "event_name:experiment.execution.created")
+	}
+
+	return tags
 }
