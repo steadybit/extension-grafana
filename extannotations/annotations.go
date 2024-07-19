@@ -187,6 +187,7 @@ func getStepTags(step event_kit_api.ExperimentStepExecution) []string {
 	}
 	tags = append(tags, fmt.Sprintf("step_execution_id:%.0f", step.ExecutionId))
 	tags = append(tags, "step_execution_key:"+step.ExperimentKey)
+	tags = append(tags, fmt.Sprintf("step_execution_key:%s", step.Id))
 
 	return tags
 }
