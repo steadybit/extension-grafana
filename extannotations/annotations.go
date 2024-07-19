@@ -106,6 +106,7 @@ func onExperimentCompleted(event event_kit_api.EventRequestBody) (*AnnotationBod
 
 func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
 	tags := getEventBaseTags(event)
+	tags = append(tags, getExecutionTags(event)...)
 	tags = append(tags, getStepTags(*event.ExperimentStepExecution)...)
 	tags = removeDuplicates(tags)
 	return &AnnotationBody{Tags: tags, Time: event.ExperimentStepExecution.StartedTime.UnixMilli(), TimeEnd: event.ExperimentStepExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
@@ -216,9 +217,9 @@ func handlePatchAnnotation(ctx context.Context, client *resty.Client, annotation
 		annotation.ID = strconv.Itoa(annotationsFound[0].ID)
 		patchAnnotation(ctx, client, annotation)
 	case 0:
-		log.Err(err).Msgf("Failed to find annotation with tags %s. Full response: %v", annotation.Tags, err)
+		log.Err(err).Msgf("Failed to find annotation with tags %s. Full response: %v", selectTagsForSearch(annotation.Tags), err)
 	default:
-		log.Err(err).Msgf("Found multiple annotations with tags %s. Full response: %v", annotation.Tags, err)
+		log.Err(err).Msgf("Found multiple annotations with tags %s. Full response: %v", selectTagsForSearch(annotation.Tags), err)
 	}
 }
 
@@ -260,6 +261,8 @@ func patchAnnotation(ctx context.Context, client *resty.Client, annotation *Anno
 
 	if !res.IsSuccess() {
 		log.Err(err).Msgf("Grafana API responded with unexpected status code %d while patching annotations. Full response: %v", res.StatusCode(), res.String())
+	} else {
+		log.Debug().Msgf("Successfully patched annotation %s", annotation.ID)
 	}
 }
 
