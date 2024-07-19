@@ -7,8 +7,6 @@
 
 package extalertrules
 
-import "time"
-
 type DataSource struct {
 	ID          int         `json:"id"`
 	UID         string      `json:"uid"`
@@ -41,9 +39,8 @@ type AlertGroup struct {
 }
 
 type AlertRule struct {
-	State          string    `json:"state"`
-	Name           string    `json:"name"`
-	Health         string    `json:"health"`
-	Type           string    `json:"type"`
-	LastEvaluation time.Time `json:"lastEvaluation"`
+	State  string `json:"state"`
+	Name   string `json:"name"`
+	Health string `json:"health"`
+	Type   string `json:"type"`
 }

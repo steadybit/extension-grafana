@@ -79,14 +79,12 @@ func testAlertRuleCheckNormal(server *mockServer, status, expectedState string, 
 		target := &action_kit_api.Target{
 			Name: "test_firing",
 			Attributes: map[string][]string{
-				"grafana.alert-rule.health":          {"ok"},
-				"grafana.alert-rule.last-evaluation": {""},
-				"grafana.alert-rule.type":            {"alerting"},
-				"grafana.alert-rule.state":           {"normal"},
-				"grafana.alert-rule.datasource":      {"loki"},
-				"grafana.alert-rule.group":           {"GoldenSignalsAlerts"},
-				"grafana.alert-rule.name":            {"test_normal"},
-				"grafana.alert-rule.id":              {"loki-GoldenSignalsAlerts-test_normal"},
+				"grafana.alert-rule.type":       {"alerting"},
+				"grafana.alert-rule.state":      {"normal"},
+				"grafana.alert-rule.datasource": {"loki"},
+				"grafana.alert-rule.group":      {"GoldenSignalsAlerts"},
+				"grafana.alert-rule.name":       {"test_normal"},
+				"grafana.alert-rule.id":         {"loki-GoldenSignalsAlerts-test_normal"},
 			},
 		}
 
@@ -149,14 +147,12 @@ func testAlertRuleCheckInactive(server *mockServer, status, expectedState string
 		target := &action_kit_api.Target{
 			Name: "test_firing",
 			Attributes: map[string][]string{
-				"grafana.alert-rule.health":          {"ok"},
-				"grafana.alert-rule.last-evaluation": {""},
-				"grafana.alert-rule.type":            {"alerting"},
-				"grafana.alert-rule.state":           {"inactive"},
-				"grafana.alert-rule.datasource":      {"grafana"},
-				"grafana.alert-rule.group":           {"GoldenSignalsAlerts"},
-				"grafana.alert-rule.name":            {"test_inactive"},
-				"grafana.alert-rule.id":              {"grafana-GoldenSignalsAlerts-test_inactive"},
+				"grafana.alert-rule.type":       {"alerting"},
+				"grafana.alert-rule.state":      {"inactive"},
+				"grafana.alert-rule.datasource": {"grafana"},
+				"grafana.alert-rule.group":      {"GoldenSignalsAlerts"},
+				"grafana.alert-rule.name":       {"test_inactive"},
+				"grafana.alert-rule.id":         {"grafana-GoldenSignalsAlerts-test_inactive"},
 			},
 		}
 
@@ -192,7 +188,6 @@ func testDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, target.TargetType, "com.steadybit.extension_grafana.alert-rule")
-	assert.Equal(t, target.Attributes["grafana.alert-rule.health"], []string{"ok"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.type"], []string{"alerting"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.state"], []string{"firing"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.datasource"], []string{"Prometheus"})
