@@ -123,7 +123,10 @@ func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*Annotatio
 }
 
 func getActionName(stepExecution event_kit_api.ExperimentStepExecution) string {
-	actionName := *stepExecution.ActionId
+	actionName := ""
+	if stepExecution.ActionId != nil {
+		actionName = *stepExecution.ActionId
+	}
 	if stepExecution.ActionName != nil {
 		actionName = *stepExecution.ActionName
 	}
