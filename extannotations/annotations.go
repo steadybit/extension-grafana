@@ -119,7 +119,18 @@ func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*Annotatio
 	tags = removeDuplicates(tags)
 	log.Debug().Msgf("removeDuplicates: %v", tags)
 
-	return &AnnotationBody{Tags: tags, Time: event.ExperimentStepExecution.StartedTime.UnixMilli(), TimeEnd: event.ExperimentStepExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
+	var startTime int64
+	var endTime int64
+	if event.ExperimentStepExecution != nil {
+		if event.ExperimentStepExecution.StartedTime != nil {
+			startTime = event.ExperimentStepExecution.StartedTime.UnixMilli()
+		}
+		if event.ExperimentStepExecution.EndedTime != nil {
+			endTime = event.ExperimentStepExecution.EndedTime.UnixMilli()
+		}
+	}
+
+	return &AnnotationBody{Tags: tags, Time: startTime, TimeEnd: endTime, NeedPatch: true}, nil
 }
 
 func getActionName(stepExecution event_kit_api.ExperimentStepExecution) string {
