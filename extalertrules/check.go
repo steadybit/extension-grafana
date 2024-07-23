@@ -275,7 +275,7 @@ func toMetric(alertRuleID string, alertRule *AlertRule, now time.Time) *action_k
 	} else if alertRule.State == "pending" {
 		state = "warn"
 	} else if alertRule.State == "inactive" {
-		state = "warn"
+		state = "success"
 	} else if alertRule.State == "firing" {
 		state = "danger"
 	}
