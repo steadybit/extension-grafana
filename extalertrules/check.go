@@ -38,8 +38,8 @@ type AlertRuleCheckState struct {
 	AlertRuleName       string
 	End                 time.Time
 	ExpectedState       []string
-	StatusCheckMode     string
-	StatusCheckSuccess  bool
+	StateCheckMode      string
+	StateCheckSuccess   bool
 }
 
 func NewAlertRuleStateCheckAction() action_kit_sdk.Action[AlertRuleCheckState] {
@@ -108,19 +108,19 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 				Order:    extutil.Ptr(2),
 			},
 			{
-				Name:         "statusCheckMode",
-				Label:        "Status Check Mode",
+				Name:         "stateCheckMode",
+				Label:        "State Check Mode",
 				Description:  extutil.Ptr("How often should the state be checked ?"),
 				Type:         action_kit_api.String,
-				DefaultValue: extutil.Ptr(statusCheckModeAllTheTime),
+				DefaultValue: extutil.Ptr(stateCheckModeAllTheTime),
 				Options: extutil.Ptr([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "All the time",
-						Value: statusCheckModeAllTheTime,
+						Value: stateCheckModeAllTheTime,
 					},
 					action_kit_api.ExplicitParameterOption{
 						Label: "At least once",
-						Value: statusCheckModeAtLeastOnce,
+						Value: stateCheckModeAtLeastOnce,
 					},
 				}),
 				Required: extutil.Ptr(true),
@@ -171,9 +171,9 @@ func (m *AlertRuleStateCheckAction) Prepare(_ context.Context, state *AlertRuleC
 		expectedState = extutil.ToStringArray(request.Config["expectedStateList"])
 	}
 
-	var statusCheckMode string
-	if request.Config["statusCheckMode"] != nil {
-		statusCheckMode = fmt.Sprintf("%v", request.Config["statusCheckMode"])
+	var stateCheckMode string
+	if request.Config["stateCheckMode"] != nil {
+		stateCheckMode = fmt.Sprintf("%v", request.Config["stateCheckMode"])
 	}
 
 	state.AlertRuleId = alertRuleId[0]
@@ -181,7 +181,7 @@ func (m *AlertRuleStateCheckAction) Prepare(_ context.Context, state *AlertRuleC
 	state.AlertRuleName = request.Target.Attributes["grafana.alert-rule.name"][0]
 	state.End = end
 	state.ExpectedState = expectedState
-	state.StatusCheckMode = statusCheckMode
+	state.StateCheckMode = stateCheckMode
 
 	return nil, nil
 }
@@ -229,7 +229,7 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 	var checkError *action_kit_api.ActionKitError
 
 	if len(state.ExpectedState) > 0 {
-		if state.StatusCheckMode == statusCheckModeAllTheTime {
+		if state.StateCheckMode == stateCheckModeAllTheTime {
 			if !slices.Contains(state.ExpectedState, alertRule.State) {
 				checkError = extutil.Ptr(action_kit_api.ActionKitError{
 					Title: fmt.Sprintf("AlertRule '%s' has state '%s' whereas '%s' is expected.",
@@ -239,11 +239,11 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 					Status: extutil.Ptr(action_kit_api.Failed),
 				})
 			}
-		} else if state.StatusCheckMode == statusCheckModeAtLeastOnce {
+		} else if state.StateCheckMode == stateCheckModeAtLeastOnce {
 			if slices.Contains(state.ExpectedState, alertRule.State) {
-				state.StatusCheckSuccess = true
+				state.StateCheckSuccess = true
 			}
-			if completed && !state.StatusCheckSuccess {
+			if completed && !state.StateCheckSuccess {
 				checkError = extutil.Ptr(action_kit_api.ActionKitError{
 					Title: fmt.Sprintf("AlertRule '%s' didn't have status '%s' at least once.",
 						alertRule.Name,
