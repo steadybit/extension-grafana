@@ -152,7 +152,7 @@ func getEventBaseTags(event event_kit_api.EventRequestBody) []string {
 	tags := []string{
 		"source:Steadybit",
 		"environment_name:" + truncate.Truncate(event.Environment.Name, 20, "...", truncate.PositionEnd),
-		"event_name:" + truncate.Truncate(event.EventName, 20, "...", truncate.PositionEnd),
+		"event_name:" + truncate.Truncate(event.EventName, 50, "...", truncate.PositionEnd),
 		"event_time:" + event.EventTime.String(),
 		"event_id:" + event.Id.String(),
 		"tenant_name:" + truncate.Truncate(event.Tenant.Name, 20, "...", truncate.PositionEnd),
