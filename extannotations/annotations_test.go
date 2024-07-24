@@ -101,7 +101,7 @@ func TestFindAnnotations(t *testing.T) {
 	defer httpmock.DeactivateAndReset()
 
 	testAnnotation := &Annotation{
-		Tags:     []string{"event_name:experiment.execution.completed", "execution_id:73983", "experiment_key:ADM-891", "experiment_name:test extension-grafana", "source:Steadybit"},
+		Tags:     []string{"event:experiment.execution.completed", "exec_id:73983", "exp_key:ADM-891", "exp_name:test extension-grafana", "source:Steadybit"},
 		Time:     time.Date(2024, 7, 18, 8, 0, 0, 0, time.UTC).UnixMilli(),
 		TimeEnd:  time.Date(2024, 7, 18, 9, 0, 0, 0, time.UTC).UnixMilli(),
 		ID:       1,
@@ -117,7 +117,7 @@ func TestFindAnnotations(t *testing.T) {
 	}
 
 	// Mock the get request
-	expectedQuery := "limit=10&tags=execution_id%3A73983&tags=experiment_key%3AADM-891&tags=event_name%3Aexperiment.execution.created"
+	expectedQuery := "limit=10&tags=exec_id%3A73983&tags=exp_key%3AADM-891&tags=event%3Aexperiment.execution.created"
 	httpmock.RegisterResponderWithQuery("GET", "/api/annotations", expectedQuery,
 		httpmock.NewJsonResponderOrPanic(200, []Annotation{*testAnnotation}))
 
@@ -218,13 +218,13 @@ func TestOnExperimentStepStarted(t *testing.T) {
 
 		assert.Contains(t, annotation.Tags, "team_name:test")
 		assert.Contains(t, annotation.Tags, "source:Steadybit")
-		assert.Contains(t, annotation.Tags, "event_name:test")
+		assert.Contains(t, annotation.Tags, "event:test")
 		assert.Contains(t, annotation.Tags, "tenant_key:Test")
-		assert.Contains(t, annotation.Tags, "tenant_name:test")
-		assert.Contains(t, annotation.Tags, "experiment_key:exp123")
-		assert.Contains(t, annotation.Tags, "experiment_name:test")
-		assert.Contains(t, annotation.Tags, "step_action_name:test")
-		assert.Contains(t, annotation.Tags, "step_custom_label:test")
+		assert.Contains(t, annotation.Tags, "tenant:test")
+		assert.Contains(t, annotation.Tags, "exp_key:exp123")
+		assert.Contains(t, annotation.Tags, "exp_name:test")
+		assert.Contains(t, annotation.Tags, "step_name:test")
+		assert.Contains(t, annotation.Tags, "step_label:test")
 		assert.Equal(t, event.ExperimentStepExecution.StartedTime.UnixMilli(), annotation.Time)
 		assert.False(t, annotation.NeedPatch)
 	})
@@ -285,11 +285,11 @@ func TestOnExperimentStarted(t *testing.T) {
 
 		assert.Contains(t, annotation.Tags, "team_name:test")
 		assert.Contains(t, annotation.Tags, "source:Steadybit")
-		assert.Contains(t, annotation.Tags, "event_name:test")
+		assert.Contains(t, annotation.Tags, "event:test")
 		assert.Contains(t, annotation.Tags, "tenant_key:Test")
-		assert.Contains(t, annotation.Tags, "tenant_name:test")
-		assert.Contains(t, annotation.Tags, "experiment_key:exp123")
-		assert.Contains(t, annotation.Tags, "experiment_name:test")
+		assert.Contains(t, annotation.Tags, "tenant:test")
+		assert.Contains(t, annotation.Tags, "exp_key:exp123")
+		assert.Contains(t, annotation.Tags, "exp_name:test")
 		assert.Equal(t, event.ExperimentExecution.StartedTime.UnixMilli(), annotation.Time)
 		assert.False(t, annotation.NeedPatch)
 	})
