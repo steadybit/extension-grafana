@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aquilax/truncate"
 	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/event-kit/go/event_kit_api"
@@ -150,11 +151,11 @@ func getActionName(stepExecution event_kit_api.ExperimentStepExecution) string {
 func getEventBaseTags(event event_kit_api.EventRequestBody) []string {
 	tags := []string{
 		"source:Steadybit",
-		"environment_name:" + event.Environment.Name,
-		"event_name:" + event.EventName,
+		"environment_name:" + truncate.Truncate(event.Environment.Name, 20, "...", truncate.PositionEnd),
+		"event_name:" + truncate.Truncate(event.EventName, 20, "...", truncate.PositionEnd),
 		"event_time:" + event.EventTime.String(),
 		"event_id:" + event.Id.String(),
-		"tenant_name:" + event.Tenant.Name,
+		"tenant_name:" + truncate.Truncate(event.Tenant.Name, 20, "...", truncate.PositionEnd),
 		"tenant_key:" + event.Tenant.Key,
 	}
 
@@ -172,7 +173,7 @@ func getExecutionTags(event event_kit_api.EventRequestBody) []string {
 	tags := []string{
 		"execution_id:" + fmt.Sprintf("%g", event.ExperimentExecution.ExecutionId),
 		"experiment_key:" + event.ExperimentExecution.ExperimentKey,
-		"experiment_name:" + event.ExperimentExecution.Name,
+		"experiment_name:" + truncate.Truncate(event.ExperimentExecution.Name, 30, "...", truncate.PositionEnd),
 	}
 
 	if event.ExperimentExecution.StartedTime.IsZero() {
@@ -194,10 +195,10 @@ func getStepTags(step event_kit_api.ExperimentStepExecution) []string {
 		tags = append(tags, "step_action_id:"+*step.ActionId)
 	}
 	if step.ActionName != nil {
-		tags = append(tags, "step_action_name:"+*step.ActionName)
+		tags = append(tags, "step_action_name:"+truncate.Truncate(*step.ActionName, 20, "...", truncate.PositionEnd))
 	}
 	if step.CustomLabel != nil {
-		tags = append(tags, "step_custom_label:"+*step.CustomLabel)
+		tags = append(tags, "step_custom_label:"+truncate.Truncate(*step.CustomLabel, 20, "...", truncate.PositionEnd))
 	}
 	tags = append(tags, fmt.Sprintf("step_execution_id:%.0f", step.ExecutionId))
 	tags = append(tags, "step_execution_key:"+step.ExperimentKey)
@@ -327,15 +328,9 @@ func selectTagsForSearch(tags []string) []string {
 		if strings.Contains(v, "experiment_key") {
 			searchTags = append(searchTags, v)
 		}
-		if strings.Contains(v, "step_action_id") {
-			searchTags = append(searchTags, v)
-			searchTags = append(searchTags, "event_name:experiment.execution.step-started")
-		}
-		if strings.Contains(v, "step_action_name") {
-			searchTags = append(searchTags, v)
-		}
 		if strings.Contains(v, "step_execution_id") {
 			searchTags = append(searchTags, v)
+			searchTags = append(searchTags, "event_name:experiment.execution.step-started")
 		}
 		if strings.Contains(v, "step_execution_key") {
 			searchTags = append(searchTags, v)
