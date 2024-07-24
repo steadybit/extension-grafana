@@ -258,7 +258,7 @@ func findAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 		SetResult(&annotationsFound).
 		AddRetryCondition(
 			func(r *resty.Response, err error) bool {
-				return len(r.Result().([]Annotation)) == 0
+				return len(*r.Result().(*[]Annotation)) == 0
 			},
 		).
 		SetQueryParamsFromValues(url.Values{
