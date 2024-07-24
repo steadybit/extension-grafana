@@ -200,8 +200,8 @@ func getStepTags(step event_kit_api.ExperimentStepExecution) []string {
 		tags = append(tags, "step_label:"+truncate.Truncate(*step.CustomLabel, 20, "...", truncate.PositionEnd))
 	}
 	tags = append(tags, fmt.Sprintf("step_exec_id:%.0f", step.ExecutionId))
-	tags = append(tags, "step_exec_key:"+step.ExperimentKey)
-	tags = append(tags, fmt.Sprintf("step_exec_key:%s", step.Id))
+	tags = append(tags, "step_exp_key:"+step.ExperimentKey)
+	tags = append(tags, fmt.Sprintf("step_id:%s", step.Id))
 
 	return tags
 }
@@ -331,7 +331,10 @@ func selectTagsForSearch(tags []string) []string {
 			searchTags = append(searchTags, v)
 			searchTags = append(searchTags, "event:experiment.execution.step-started")
 		}
-		if strings.Contains(v, "step_exec_key") {
+		if strings.Contains(v, "step_exp_key") {
+			searchTags = append(searchTags, v)
+		}
+		if strings.Contains(v, "step_id") {
 			searchTags = append(searchTags, v)
 		}
 	}
