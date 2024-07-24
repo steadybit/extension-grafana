@@ -234,9 +234,10 @@ func sendAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 }
 
 func handlePatchAnnotation(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {
-	annotationsFound, err := findAnnotations(ctx, client, annotation)
+	annotationsFound, resp, err := findAnnotations(ctx, client, annotation)
+	tagsSearched := selectTagsForSearch(annotation.Tags)
 	if err != nil {
-		log.Err(err).Msgf("Failed to find annotation with these tags %s. Full response: %v", annotation.Tags, err)
+		log.Err(err).Msgf("Error found when finding annotation with these tags %s. Full response: %v", tagsSearched, resp.String())
 		return
 	}
 
@@ -245,15 +246,15 @@ func handlePatchAnnotation(ctx context.Context, client *resty.Client, annotation
 		annotation.ID = strconv.Itoa(annotationsFound[0].ID)
 		patchAnnotation(ctx, client, annotation)
 	case 0:
-		log.Err(err).Msgf("Failed to find annotation with tags %s. Full response: %v", selectTagsForSearch(annotation.Tags), err)
+		log.Warn().Msgf("Failed to find annotation with tags %s.", tagsSearched)
 	default:
-		log.Err(err).Msgf("Found multiple annotations with tags %s. Full response: %v", selectTagsForSearch(annotation.Tags), err)
+		log.Warn().Msgf("Found multiple annotations with tags %s. Full response: %v", tagsSearched, resp.String())
 	}
 }
 
-func findAnnotations(ctx context.Context, client *resty.Client, annotation *AnnotationBody) ([]Annotation, error) {
+func findAnnotations(ctx context.Context, client *resty.Client, annotation *AnnotationBody) ([]Annotation, *resty.Response, error) {
 	var annotationsFound []Annotation
-	_, err := client.R().
+	resp, err := client.R().
 		SetContext(ctx).
 		SetResult(&annotationsFound).
 		AddRetryCondition(
@@ -262,7 +263,7 @@ func findAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 			},
 		).
 		SetQueryParamsFromValues(url.Values{
-			"tags":  selectTagsForSearch(removeDuplicates(annotation.Tags)),
+			"tags":  selectTagsForSearch(annotation.Tags),
 			"limit": {"10"},
 		}).
 		Get("/api/annotations")
@@ -273,10 +274,10 @@ func findAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 	//}.Encode())
 
 	if err != nil {
-		return nil, err
+		return nil, resp, err
 	}
 
-	return annotationsFound, nil
+	return annotationsFound, resp, nil
 }
 
 func patchAnnotation(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {

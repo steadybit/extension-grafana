@@ -53,8 +53,7 @@ helm upgrade steadybit-extension-grafana \
 
 ## Register the extension
 
-Make sure to register the extension at the steadybit platform. Please refer to
-the [documentation](https://docs.steadybit.com/integrate-with-steadybit/extensions/extension-installation) for more information.
+Make sure to register the extension on the Steadybit platform. Please refer to the [documentation](https://docs.steadybit.com/integrate-with-steadybit/extensions/extension-installation) for more information.
 
 ## FAQ
 
@@ -62,4 +61,4 @@ the [documentation](https://docs.steadybit.com/integrate-with-steadybit/extensio
 
 Do you provide the service account token to the extension ? Does the token still exists on Grafana ?
 
-_warning: if you want the service account token to survive a grafana pod deletion or restart, you need to [persist the grafana data in a DB](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#database)._
+_warning: If you want the service account token to survive a Grafana pod deletion or restart, you need to [persist the Grafana data in a DB](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#database)._

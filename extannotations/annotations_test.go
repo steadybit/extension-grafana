@@ -122,7 +122,7 @@ func TestFindAnnotations(t *testing.T) {
 		httpmock.NewJsonResponderOrPanic(200, []Annotation{*testAnnotation}))
 
 	// Call the function
-	annotations, err := findAnnotations(ctx, client, annotation)
+	annotations, _, err := findAnnotations(ctx, client, annotation)
 
 	// Assertions
 	assert.NoError(t, err)
