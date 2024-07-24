@@ -151,11 +151,10 @@ func getActionName(stepExecution event_kit_api.ExperimentStepExecution) string {
 func getEventBaseTags(event event_kit_api.EventRequestBody) []string {
 	tags := []string{
 		"source:Steadybit",
-		"environment_name:" + truncate.Truncate(event.Environment.Name, 10, "...", truncate.PositionEnd),
-		"event_name:" + truncate.Truncate(event.EventName, 50, "...", truncate.PositionEnd),
-		"event_time:" + event.EventTime.String(),
+		"env:" + truncate.Truncate(event.Environment.Name, 10, "...", truncate.PositionEnd),
+		"event:" + truncate.Truncate(event.EventName, 50, "...", truncate.PositionEnd),
 		"event_id:" + event.Id.String(),
-		"tenant_name:" + truncate.Truncate(event.Tenant.Name, 10, "...", truncate.PositionEnd),
+		"tenant:" + truncate.Truncate(event.Tenant.Name, 10, "...", truncate.PositionEnd),
 		"tenant_key:" + event.Tenant.Key,
 	}
 
@@ -171,9 +170,9 @@ func getExecutionTags(event event_kit_api.EventRequestBody) []string {
 		return []string{}
 	}
 	tags := []string{
-		"execution_id:" + fmt.Sprintf("%g", event.ExperimentExecution.ExecutionId),
-		"experiment_key:" + event.ExperimentExecution.ExperimentKey,
-		"experiment_name:" + truncate.Truncate(event.ExperimentExecution.Name, 20, "...", truncate.PositionEnd),
+		"exec_id:" + fmt.Sprintf("%g", event.ExperimentExecution.ExecutionId),
+		"exp_key:" + event.ExperimentExecution.ExperimentKey,
+		"exp_name:" + truncate.Truncate(event.ExperimentExecution.Name, 20, "...", truncate.PositionEnd),
 	}
 
 	if event.ExperimentExecution.StartedTime.IsZero() {
@@ -195,14 +194,14 @@ func getStepTags(step event_kit_api.ExperimentStepExecution) []string {
 		tags = append(tags, "step_action_id:"+*step.ActionId)
 	}
 	if step.ActionName != nil {
-		tags = append(tags, "step_action_name:"+truncate.Truncate(*step.ActionName, 10, "...", truncate.PositionEnd))
+		tags = append(tags, "step_name:"+truncate.Truncate(*step.ActionName, 10, "...", truncate.PositionEnd))
 	}
 	if step.CustomLabel != nil {
-		tags = append(tags, "step_custom_label:"+truncate.Truncate(*step.CustomLabel, 10, "...", truncate.PositionEnd))
+		tags = append(tags, "step_label:"+truncate.Truncate(*step.CustomLabel, 10, "...", truncate.PositionEnd))
 	}
-	tags = append(tags, fmt.Sprintf("step_execution_id:%.0f", step.ExecutionId))
-	tags = append(tags, "step_execution_key:"+step.ExperimentKey)
-	tags = append(tags, fmt.Sprintf("step_execution_key:%s", step.Id))
+	tags = append(tags, fmt.Sprintf("step_exec_id:%.0f", step.ExecutionId))
+	tags = append(tags, "step_exec_key:"+step.ExperimentKey)
+	tags = append(tags, fmt.Sprintf("step_exec_key:%s", step.Id))
 
 	return tags
 }
@@ -322,22 +321,22 @@ func handlePostAnnotation(ctx context.Context, client *resty.Client, annotation 
 func selectTagsForSearch(tags []string) []string {
 	searchTags := make([]string, 0)
 	for _, v := range tags {
-		if strings.Contains(v, "execution_id") {
+		if strings.Contains(v, "exec_id") {
 			searchTags = append(searchTags, v)
 		}
-		if strings.Contains(v, "experiment_key") {
+		if strings.Contains(v, "exp_key") {
 			searchTags = append(searchTags, v)
 		}
-		if strings.Contains(v, "step_execution_id") {
+		if strings.Contains(v, "step_exec_id") {
 			searchTags = append(searchTags, v)
-			searchTags = append(searchTags, "event_name:experiment.execution.step-started")
+			searchTags = append(searchTags, "event:experiment.execution.step-started")
 		}
-		if strings.Contains(v, "step_execution_key") {
+		if strings.Contains(v, "step_exec_key") {
 			searchTags = append(searchTags, v)
 		}
 	}
-	if !slices.Contains(searchTags, "event_name:experiment.execution.step-started") {
-		searchTags = append(searchTags, "event_name:experiment.execution.created")
+	if !slices.Contains(searchTags, "event:experiment.execution.step-started") {
+		searchTags = append(searchTags, "event:experiment.execution.created")
 	}
 
 	return searchTags
