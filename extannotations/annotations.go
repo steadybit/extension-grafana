@@ -332,12 +332,9 @@ func selectTagsForSearch(tags []string) []string {
 		if strings.Contains(v, "exp_key") {
 			searchTags = append(searchTags, v)
 		}
-		if strings.Contains(v, "step_exec_id") {
-			searchTags = append(searchTags, v)
-			searchTags = append(searchTags, "event:experiment.execution.step-started")
-		}
 		if strings.Contains(v, "step_exp_key") {
 			searchTags = append(searchTags, v)
+			searchTags = append(searchTags, "event:experiment.execution.step-started")
 		}
 		if strings.Contains(v, "step_id") {
 			searchTags = append(searchTags, v)
