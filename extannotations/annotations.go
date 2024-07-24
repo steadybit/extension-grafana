@@ -151,7 +151,7 @@ func getActionName(stepExecution event_kit_api.ExperimentStepExecution) string {
 func getEventBaseTags(event event_kit_api.EventRequestBody) []string {
 	tags := []string{
 		"source:Steadybit",
-		"env:" + truncate.Truncate(event.Environment.Name, 10, "...", truncate.PositionEnd),
+		"env:" + truncate.Truncate(event.Environment.Name, 20, "...", truncate.PositionEnd),
 		"event:" + truncate.Truncate(event.EventName, 50, "...", truncate.PositionEnd),
 		"event_id:" + event.Id.String(),
 		"tenant:" + truncate.Truncate(event.Tenant.Name, 10, "...", truncate.PositionEnd),
@@ -194,10 +194,10 @@ func getStepTags(step event_kit_api.ExperimentStepExecution) []string {
 		tags = append(tags, "step_action_id:"+*step.ActionId)
 	}
 	if step.ActionName != nil {
-		tags = append(tags, "step_name:"+truncate.Truncate(*step.ActionName, 10, "...", truncate.PositionEnd))
+		tags = append(tags, "step_name:"+truncate.Truncate(*step.ActionName, 20, "...", truncate.PositionEnd))
 	}
 	if step.CustomLabel != nil {
-		tags = append(tags, "step_label:"+truncate.Truncate(*step.CustomLabel, 10, "...", truncate.PositionEnd))
+		tags = append(tags, "step_label:"+truncate.Truncate(*step.CustomLabel, 20, "...", truncate.PositionEnd))
 	}
 	tags = append(tags, fmt.Sprintf("step_exec_id:%.0f", step.ExecutionId))
 	tags = append(tags, "step_exec_key:"+step.ExperimentKey)
