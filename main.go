@@ -23,6 +23,7 @@ import (
 	"github.com/steadybit/extension-kit/extruntime"
 	_ "go.uber.org/automaxprocs" // Importing automaxprocs automatically adjusts GOMAXPROCS.
 	_ "net/http/pprof"           //allow pprof
+	"time"
 )
 
 func main() {
@@ -62,7 +63,8 @@ func initRestyClient() {
 	extalertrules.RestyClient.SetHeader("Content-Type", "application/json")
 
 	extannotations.RestyClient = resty.New()
-	extannotations.RestyClient.SetRetryCount(1)
+	extannotations.RestyClient.SetRetryCount(2)
+	extannotations.RestyClient.SetRetryWaitTime(500 * time.Millisecond)
 	extannotations.RestyClient.SetBaseURL(config.Config.ApiBaseUrl)
 	extannotations.RestyClient.SetHeader("Authorization", "Bearer "+config.Config.ServiceToken)
 	extannotations.RestyClient.SetHeader("Content-Type", "application/json")
