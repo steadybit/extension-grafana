@@ -258,7 +258,7 @@ func findAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 		SetContext(ctx).
 		SetResult(&annotationsFound).
 		SetQueryParamsFromValues(url.Values{
-			"tags":  removeDuplicates(selectTagsForSearch(annotation.Tags)),
+			"tags":  removeDuplicates(selectTagsForSearch(removeDuplicates(annotation.Tags))),
 			"limit": {"10"},
 		}).
 		Get("/api/annotations")
