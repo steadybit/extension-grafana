@@ -256,8 +256,13 @@ func findAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 	_, err := client.R().
 		SetContext(ctx).
 		SetResult(&annotationsFound).
+		AddRetryCondition(
+			func(r *resty.Response, err error) bool {
+				return len(r.Result().([]Annotation)) == 0
+			},
+		).
 		SetQueryParamsFromValues(url.Values{
-			"tags":  removeDuplicates(selectTagsForSearch(removeDuplicates(annotation.Tags))),
+			"tags":  selectTagsForSearch(removeDuplicates(annotation.Tags)),
 			"limit": {"10"},
 		}).
 		Get("/api/annotations")
@@ -342,5 +347,5 @@ func selectTagsForSearch(tags []string) []string {
 		searchTags = append(searchTags, "event:experiment.execution.created")
 	}
 
-	return searchTags
+	return removeDuplicates(searchTags)
 }

@@ -20,7 +20,6 @@ func TestPrepareExtractsState(t *testing.T) {
 				"grafana.alert-rule.id":         {"prometheus-GoldenSignalsAlerts-test_firing"},
 				"grafana.alert-rule.health":     {"ok"},
 				"grafana.alert-rule.type":       {"alerting"},
-				"grafana.alert-rule.state":      {"firing"},
 				"grafana.alert-rule.datasource": {"prometheus"},
 				"grafana.alert-rule.name":       {"test_firing"},
 			},

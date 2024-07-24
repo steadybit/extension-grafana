@@ -80,7 +80,6 @@ func testAlertRuleCheckNormal(server *mockServer, status, expectedState string, 
 			Name: "test_firing",
 			Attributes: map[string][]string{
 				"grafana.alert-rule.type":       {"alerting"},
-				"grafana.alert-rule.state":      {"normal"},
 				"grafana.alert-rule.datasource": {"loki"},
 				"grafana.alert-rule.group":      {"GoldenSignalsAlerts"},
 				"grafana.alert-rule.name":       {"test_normal"},
@@ -148,7 +147,6 @@ func testAlertRuleCheckInactive(server *mockServer, status, expectedState string
 			Name: "test_firing",
 			Attributes: map[string][]string{
 				"grafana.alert-rule.type":       {"alerting"},
-				"grafana.alert-rule.state":      {"inactive"},
 				"grafana.alert-rule.datasource": {"grafana"},
 				"grafana.alert-rule.group":      {"GoldenSignalsAlerts"},
 				"grafana.alert-rule.name":       {"test_inactive"},
@@ -189,7 +187,6 @@ func testDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 	assert.Equal(t, target.TargetType, "com.steadybit.extension_grafana.alert-rule")
 	assert.Equal(t, target.Attributes["grafana.alert-rule.type"], []string{"alerting"})
-	assert.Equal(t, target.Attributes["grafana.alert-rule.state"], []string{"firing"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.datasource"], []string{"Prometheus"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.name"], []string{"test_firing"})
 }

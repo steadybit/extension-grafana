@@ -62,6 +62,7 @@ func initRestyClient() {
 	extalertrules.RestyClient.SetHeader("Content-Type", "application/json")
 
 	extannotations.RestyClient = resty.New()
+	extannotations.RestyClient.SetRetryCount(1)
 	extannotations.RestyClient.SetBaseURL(config.Config.ApiBaseUrl)
 	extannotations.RestyClient.SetHeader("Authorization", "Bearer "+config.Config.ServiceToken)
 	extannotations.RestyClient.SetHeader("Content-Type", "application/json")
