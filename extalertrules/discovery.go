@@ -17,6 +17,7 @@ import (
 	"github.com/steadybit/extension-grafana/config"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
+	"net/url"
 	"time"
 )
 
@@ -98,6 +99,8 @@ func (d *alertDiscovery) DiscoverTargets(ctx context.Context) ([]discovery_kit_a
 
 func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit_api.Target {
 	result := make([]discovery_kit_api.Target, 0, 1000)
+	urlParsed, _ := url.Parse(client.BaseURL)
+	grafanaHost := urlParsed.Hostname()
 
 	datasources := getAllCompatibleDatasource(ctx, client)
 	// for every datasource compatible
@@ -124,7 +127,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 
 		for _, alertGroup := range perDatasourceResponse.AlertsData.AlertsGroups {
 			for _, rule := range alertGroup.AlertsRules {
-				Id := datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
+				Id := grafanaHost + "-" + datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
 				result = append(result, discovery_kit_api.Target{
 					Id:         Id,
 					TargetType: TargetType,
@@ -135,6 +138,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 						"grafana.alert-rule.group":      {alertGroup.Name},
 						"grafana.alert-rule.name":       {rule.Name},
 						"grafana.alert-rule.id":         {Id},
+						"grafana.host":                  {grafanaHost},
 					}})
 			}
 		}
@@ -164,7 +168,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 
 	for _, alertGroup := range grafanaAlertRules.AlertsData.AlertsGroups {
 		for _, rule := range alertGroup.AlertsRules {
-			Id := datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
+			Id := grafanaHost + "-" + datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
 			result = append(result, discovery_kit_api.Target{
 				Id:         Id,
 				TargetType: TargetType,
@@ -175,6 +179,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 					"grafana.alert-rule.group":      {alertGroup.Name},
 					"grafana.alert-rule.name":       {rule.Name},
 					"grafana.alert-rule.id":         {Id},
+					"grafana.host":                  {grafanaHost},
 				}})
 		}
 	}
