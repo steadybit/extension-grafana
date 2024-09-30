@@ -22,7 +22,7 @@ require (
 	github.com/steadybit/event-kit/go/event_kit_api v1.4.1
 	github.com/steadybit/extension-kit v1.8.15
 	github.com/stretchr/testify v1.9.0
-	go.uber.org/automaxprocs v1.5.3
+	go.uber.org/automaxprocs v1.6.0
 )
 
 require (
