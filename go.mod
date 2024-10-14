@@ -1,8 +1,7 @@
 module github.com/steadybit/extension-grafana
 
 go 1.22.0
-
-toolchain go1.22.2
+toolchain go1.23.2
 
 require (
 	github.com/KimMachineGun/automemlimit v0.6.1
@@ -17,7 +16,7 @@ require (
 	github.com/steadybit/action-kit/go/action_kit_test v1.2.15
 	github.com/steadybit/discovery-kit/go/discovery_kit_api v1.6.0
 	github.com/steadybit/discovery-kit/go/discovery_kit_commons v0.2.0
-	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.1.1
+	github.com/steadybit/discovery-kit/go/discovery_kit_sdk v1.2.1
 	github.com/steadybit/discovery-kit/go/discovery_kit_test v1.1.2
 	github.com/steadybit/event-kit/go/event_kit_api v1.4.1
 	github.com/steadybit/extension-kit v1.8.15
