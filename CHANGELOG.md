@@ -4,6 +4,7 @@
 
 - Fix for better handling of annotations
 - Fix to handle multiple grafana targets
+- Update dependencies
 
 ## v1.0.0
 
@@ -11,4 +12,4 @@
 	- Discovery of Alert rules
  	- Check alert rules states
 - Add support for Grafana annotations
-	- Send Steadybit events as annotations  
+	- Send Steadybit events as annotations
