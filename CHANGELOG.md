@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.1
+
+- Fix for better handling of annotations
+- Fix to handle multiple grafana targets
+
 ## v1.0.0
 
 - Add support for Grafana Alert Rules
