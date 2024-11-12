@@ -45,7 +45,7 @@ func main() {
 	action_kit_sdk.RegisterAction(extalertrules.NewAlertRuleStateCheckAction())
 	extannotations.RegisterEventListenerHandlers()
 
-	action_kit_sdk.InstallSignalHandler()
+	extsignals.ActivateSignalHandlers()
 
 	action_kit_sdk.RegisterCoverageEndpoints()
 
