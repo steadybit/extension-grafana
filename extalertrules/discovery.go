@@ -199,22 +199,20 @@ func getAllCompatibleDatasource(ctx context.Context, client *resty.Client) []Dat
 		return grafanaResponse
 	}
 
+	grafanaResponseFiltered := make([]DataSource, 0)
 	if res.StatusCode() != 200 {
-		log.Error().Msgf("Grafana API responded with unexpected status code %d while retrieving alert states. Full response: %v",
+		log.Warn().Msgf("Grafana API responded with unexpected status code %d while retrieving alert states. Full response: %v",
 			res.StatusCode(),
 			res.String())
-		return grafanaResponse
-	}
-
-	grafanaResponseFiltered := make([]DataSource, 0)
-	for _, ds := range grafanaResponse {
-		if isAlertRuleCompatible(ds) {
-			grafanaResponseFiltered = append(grafanaResponseFiltered, ds)
+	} else {
+		for _, ds := range grafanaResponse {
+			if isAlertRuleCompatible(ds) {
+				grafanaResponseFiltered = append(grafanaResponseFiltered, ds)
+			}
 		}
+		log.Trace().Msgf("Grafana response: %v", grafanaResponse)
+		log.Trace().Msgf("Grafana filtered response: %v", grafanaResponseFiltered)
 	}
-	log.Trace().Msgf("Grafana response: %v", grafanaResponse)
-	log.Trace().Msgf("Grafana filtered response: %v", grafanaResponseFiltered)
-
 	return grafanaResponseFiltered
 }
 
