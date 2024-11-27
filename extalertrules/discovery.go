@@ -117,29 +117,29 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 		}
 
 		if res.StatusCode() != 200 && res.StatusCode() != 404 {
-			log.Error().Msgf("Grafana API responded with unexpected status code %d while retrieving alert states. Full response: %v",
+			log.Warn().Msgf("Grafana API responded with unexpected status code %d while retrieving alert states. Full response: %v",
 				res.StatusCode(),
 				res.String())
 			return result
-		}
+		} else {
+			log.Trace().Msgf("Grafana response: %v", perDatasourceResponse.AlertsData)
 
-		log.Trace().Msgf("Grafana response: %v", perDatasourceResponse.AlertsData)
-
-		for _, alertGroup := range perDatasourceResponse.AlertsData.AlertsGroups {
-			for _, rule := range alertGroup.AlertsRules {
-				Id := grafanaHost + "-" + datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
-				result = append(result, discovery_kit_api.Target{
-					Id:         Id,
-					TargetType: TargetType,
-					Label:      rule.Name,
-					Attributes: map[string][]string{
-						"grafana.alert-rule.type":       {rule.Type},
-						"grafana.alert-rule.datasource": {datasource.Name},
-						"grafana.alert-rule.group":      {alertGroup.Name},
-						"grafana.alert-rule.name":       {rule.Name},
-						"grafana.alert-rule.id":         {Id},
-						"grafana.host":                  {grafanaHost},
-					}})
+			for _, alertGroup := range perDatasourceResponse.AlertsData.AlertsGroups {
+				for _, rule := range alertGroup.AlertsRules {
+					Id := grafanaHost + "-" + datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
+					result = append(result, discovery_kit_api.Target{
+						Id:         Id,
+						TargetType: TargetType,
+						Label:      rule.Name,
+						Attributes: map[string][]string{
+							"grafana.alert-rule.type":       {rule.Type},
+							"grafana.alert-rule.datasource": {datasource.Name},
+							"grafana.alert-rule.group":      {alertGroup.Name},
+							"grafana.alert-rule.name":       {rule.Name},
+							"grafana.alert-rule.id":         {Id},
+							"grafana.host":                  {grafanaHost},
+						}})
+				}
 			}
 		}
 	}
@@ -158,29 +158,28 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 	}
 
 	if res.StatusCode() != 200 && res.StatusCode() != 404 {
-		log.Error().Msgf("Grafana API responded with unexpected status code %d while retrieving alert states. Full response: %v",
+		log.Warn().Msgf("Grafana API responded with unexpected status code %d while retrieving alert states. Full response: %v",
 			res.StatusCode(),
 			res.String())
-		return result
-	}
+	} else {
+		log.Trace().Msgf("Grafana response: %v", grafanaAlertRules.AlertsData)
 
-	log.Trace().Msgf("Grafana response: %v", grafanaAlertRules.AlertsData)
-
-	for _, alertGroup := range grafanaAlertRules.AlertsData.AlertsGroups {
-		for _, rule := range alertGroup.AlertsRules {
-			Id := grafanaHost + "-" + datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
-			result = append(result, discovery_kit_api.Target{
-				Id:         Id,
-				TargetType: TargetType,
-				Label:      rule.Name,
-				Attributes: map[string][]string{
-					"grafana.alert-rule.type":       {rule.Type},
-					"grafana.alert-rule.datasource": {datasource.Name},
-					"grafana.alert-rule.group":      {alertGroup.Name},
-					"grafana.alert-rule.name":       {rule.Name},
-					"grafana.alert-rule.id":         {Id},
-					"grafana.host":                  {grafanaHost},
-				}})
+		for _, alertGroup := range grafanaAlertRules.AlertsData.AlertsGroups {
+			for _, rule := range alertGroup.AlertsRules {
+				Id := grafanaHost + "-" + datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
+				result = append(result, discovery_kit_api.Target{
+					Id:         Id,
+					TargetType: TargetType,
+					Label:      rule.Name,
+					Attributes: map[string][]string{
+						"grafana.alert-rule.type":       {rule.Type},
+						"grafana.alert-rule.datasource": {datasource.Name},
+						"grafana.alert-rule.group":      {alertGroup.Name},
+						"grafana.alert-rule.name":       {rule.Name},
+						"grafana.alert-rule.id":         {Id},
+						"grafana.host":                  {grafanaHost},
+					}})
+			}
 		}
 	}
 
