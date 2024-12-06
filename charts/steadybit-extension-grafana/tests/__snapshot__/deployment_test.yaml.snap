@@ -73,10 +73,11 @@ manifest should match discovery exclusions:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match service token:
@@ -152,10 +153,11 @@ manifest should match service token:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match snapshot using podAnnotations and Labels:
@@ -233,10 +235,11 @@ manifest should match snapshot using podAnnotations and Labels:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match snapshot with TLS:
@@ -316,13 +319,14 @@ manifest should match snapshot with TLS:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts:
                 - mountPath: /etc/extension/certificates/server-cert
                   name: certificate-server-cert
                   readOnly: true
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes:
             - name: certificate-server-cert
@@ -402,10 +406,11 @@ manifest should match snapshot with env vars:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match snapshot with existing secret:
@@ -481,10 +486,11 @@ manifest should match snapshot with existing secret:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match snapshot with extra env vars:
@@ -567,10 +573,11 @@ manifest should match snapshot with extra env vars:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match snapshot with extra labels:
@@ -648,10 +655,11 @@ manifest should match snapshot with extra labels:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match snapshot with mutual TLS:
@@ -733,9 +741,6 @@ manifest should match snapshot with mutual TLS:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts:
                 - mountPath: /etc/extension/certificates/client-cert-a
                   name: certificate-client-cert-a
@@ -743,6 +748,10 @@ manifest should match snapshot with mutual TLS:
                 - mountPath: /etc/extension/certificates/server-cert
                   name: certificate-server-cert
                   readOnly: true
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes:
             - name: certificate-client-cert-a
@@ -832,10 +841,11 @@ manifest should match snapshot with mutual TLS using containerPaths:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match snapshot with podSecurityContext:
@@ -911,12 +921,12 @@ manifest should match snapshot with podSecurityContext:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
           securityContext:
+            runAsNonRoot: true
             runAsUser: 2222
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match snapshot with priority class:
@@ -992,11 +1002,12 @@ manifest should match snapshot with priority class:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
           priorityClassName: my-priority-class
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
 manifest should match snapshot without TLS:
@@ -1072,9 +1083,10 @@ manifest should match snapshot without TLS:
                   drop:
                     - ALL
                 readOnlyRootFilesystem: true
-                runAsGroup: 10000
-                runAsNonRoot: true
-                runAsUser: 10000
               volumeMounts: null
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
           serviceAccountName: steadybit-extension-grafana
           volumes: null
