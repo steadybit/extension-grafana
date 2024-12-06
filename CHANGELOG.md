@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.4
+
+- Use uid instead of name for user statement in Dockerfile
+
 ## v1.0.1
 
 - Fix for better handling of annotations
