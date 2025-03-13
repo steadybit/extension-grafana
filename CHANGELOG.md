@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.5 (next release)
+## v1.0.5
 
 - Update dependencies
 
