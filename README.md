@@ -81,3 +81,10 @@ information about extension registration and how to verify.
 Do you provide the service account token to the extension ? Does the token still exists on Grafana ?
 
 _warning: If you want the service account token to survive a Grafana pod deletion or restart, you need to [persist the Grafana data in a DB](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/#database)._
+
+## Version and Revision
+
+The version and revision of the extension:
+- are printed during the startup of the extension
+- are added as a Docker label to the image
+- are available via the `version.txt`/`revision.txt` files in the root of the image
