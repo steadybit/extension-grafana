@@ -18,6 +18,7 @@ import (
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -205,7 +206,7 @@ func getAllCompatibleDatasource(ctx context.Context, client *resty.Client) []Dat
 			res.String())
 	} else {
 		for _, ds := range grafanaResponse {
-			if isAlertRuleCompatible(ds) {
+			if isAlertRuleCompatible(ds) && isDatasourceHealthy(ctx, client, ds) {
 				grafanaResponseFiltered = append(grafanaResponseFiltered, ds)
 			}
 		}
@@ -222,4 +223,15 @@ func isAlertRuleCompatible(ds DataSource) bool {
 		"loki":       true,
 	}
 	return compatibleDatasources[ds.Type]
+}
+
+func isDatasourceHealthy(ctx context.Context, client *resty.Client, ds DataSource) bool {
+	res, _ := client.R().
+		SetContext(ctx).
+		Get("/api/datasources/" + strconv.Itoa(ds.ID) + "/health")
+
+	if res.StatusCode() != 200 {
+		return false
+	}
+	return true
 }

@@ -208,7 +208,7 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 		Get(uri)
 
 	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to retrieve alerts states from Grafana for Datasource %s with uri %s. Full response: %v", state.AlertRuleDatasource, uri, res.String()), err))
+		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to retrieve alerts states from Grafana for Datasource %s with uri %s.", state.AlertRuleDatasource, uri), err))
 	}
 
 	if !res.IsSuccess() {
