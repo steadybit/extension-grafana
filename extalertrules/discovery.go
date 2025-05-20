@@ -230,8 +230,5 @@ func isDatasourceHealthy(ctx context.Context, client *resty.Client, ds DataSourc
 		SetContext(ctx).
 		Get("/api/datasources/" + strconv.Itoa(ds.ID) + "/health")
 
-	if res.StatusCode() != 200 {
-		return false
-	}
-	return true
+	return res.StatusCode() == 200
 }
