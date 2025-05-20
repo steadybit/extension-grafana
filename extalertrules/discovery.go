@@ -127,7 +127,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 
 			for _, alertGroup := range perDatasourceResponse.AlertsData.AlertsGroups {
 				for _, rule := range alertGroup.AlertsRules {
-					Id := grafanaHost + "-" + datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
+					Id := grafanaHost + "-" + datasource.Name + "-" + alertGroup.Name + "-" + rule.Name
 					result = append(result, discovery_kit_api.Target{
 						Id:         Id,
 						TargetType: TargetType,
@@ -167,7 +167,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 
 		for _, alertGroup := range grafanaAlertRules.AlertsData.AlertsGroups {
 			for _, rule := range alertGroup.AlertsRules {
-				Id := grafanaHost + "-" + datasource.Type + "-" + alertGroup.Name + "-" + rule.Name
+				Id := grafanaHost + "-" + datasource.Name + "-" + alertGroup.Name + "-" + rule.Name
 				result = append(result, discovery_kit_api.Target{
 					Id:         Id,
 					TargetType: TargetType,
