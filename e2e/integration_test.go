@@ -187,7 +187,7 @@ func testDiscovery(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
 	require.NoError(t, err)
 	assert.Equal(t, target.TargetType, "com.steadybit.extension_grafana.alert-rule")
 	assert.Equal(t, target.Attributes["grafana.alert-rule.type"], []string{"alerting"})
-	assert.Equal(t, target.Attributes["grafana.alert-rule.datasource"], []string{"Prometheus"})
+	assert.Equal(t, target.Attributes["grafana.alert-rule.datasource"], []string{"prometheus"})
 	assert.Equal(t, target.Attributes["grafana.alert-rule.name"], []string{"test_firing"})
 }
 
