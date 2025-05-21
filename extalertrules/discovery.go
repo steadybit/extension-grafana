@@ -230,5 +230,9 @@ func isDatasourceHealthy(ctx context.Context, client *resty.Client, ds DataSourc
 		SetContext(ctx).
 		Get("/api/datasources/" + strconv.Itoa(ds.ID) + "/health")
 
+	if res.StatusCode() != 200 {
+		log.Warn().Msgf("Datasource %s is not healthy, skipping discovery of alert rules for this one..", ds.Name)
+	}
+
 	return res.StatusCode() == 200
 }
