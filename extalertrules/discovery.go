@@ -134,7 +134,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 						Label:      rule.Name,
 						Attributes: map[string][]string{
 							"grafana.alert-rule.type":       {rule.Type},
-							"grafana.alert-rule.datasource": {datasource.Name},
+							"grafana.alert-rule.datasource": {datasource.UID},
 							"grafana.alert-rule.group":      {alertGroup.Name},
 							"grafana.alert-rule.name":       {rule.Name},
 							"grafana.alert-rule.id":         {Id},
