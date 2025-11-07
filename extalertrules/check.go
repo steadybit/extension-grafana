@@ -20,7 +20,6 @@ import (
 	"github.com/steadybit/extension-kit/extutil"
 	"net/url"
 	"slices"
-	"strings"
 	"time"
 )
 
@@ -201,7 +200,7 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 	var grafanaResponse AlertsStates
 	var alertRule *AlertRule
 
-	uri := "/api/prometheus/" + strings.ToLower(state.AlertRuleDatasource) + "/api/v1/rules"
+	uri := "/api/prometheus/" + state.AlertRuleDatasource + "/api/v1/rules"
 	res, err := client.R().
 		SetContext(ctx).
 		SetResult(&grafanaResponse).
