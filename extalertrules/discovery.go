@@ -51,7 +51,7 @@ func (d *alertDiscovery) Describe() discovery_kit_api.DiscoveryDescription {
 func (d *alertDiscovery) DescribeTarget() discovery_kit_api.TargetDescription {
 	return discovery_kit_api.TargetDescription{
 		Id:       TargetType,
-		Label:    discovery_kit_api.PluralLabel{One: "Grafana alert-rule", Other: "Grafana alert-rules"},
+		Label:    discovery_kit_api.PluralLabel{One: "Grafana Alert Rule", Other: "Grafana Alert Rules"},
 		Category: extutil.Ptr("monitoring"),
 		Version:  extbuild.GetSemverVersionStringOrUnknown(),
 		Icon:     extutil.Ptr(targetIcon),
