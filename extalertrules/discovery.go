@@ -9,6 +9,10 @@ package extalertrules
 
 import (
 	"context"
+	"fmt"
+	"net/url"
+	"time"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/discovery-kit/go/discovery_kit_api"
@@ -17,9 +21,6 @@ import (
 	"github.com/steadybit/extension-grafana/config"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
-	"net/url"
-	"strconv"
-	"time"
 )
 
 type alertDiscovery struct {
@@ -110,7 +111,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 		res, err := client.R().
 			SetContext(ctx).
 			SetResult(&perDatasourceResponse).
-			Get("/api/prometheus/" + datasource.UID + "/api/v1/rules")
+			Get(fmt.Sprintf("/api/prometheus/%s/api/v1/rules", datasource.UID))
 
 		if err != nil {
 			log.Err(err).Msgf("Failed to retrieve alerts states from Grafana. Full response: %v", res.String())
@@ -127,7 +128,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 
 			for _, alertGroup := range perDatasourceResponse.AlertsData.AlertsGroups {
 				for _, rule := range alertGroup.AlertsRules {
-					Id := grafanaHost + "-" + datasource.Name + "-" + alertGroup.Name + "-" + rule.Name
+					Id := fmt.Sprintf("%s-%s-%s-%s", grafanaHost, datasource.Name, alertGroup.Name, rule.Name)
 					result = append(result, discovery_kit_api.Target{
 						Id:         Id,
 						TargetType: TargetType,
@@ -167,7 +168,7 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 
 		for _, alertGroup := range grafanaAlertRules.AlertsData.AlertsGroups {
 			for _, rule := range alertGroup.AlertsRules {
-				Id := grafanaHost + "-" + datasource.Name + "-" + alertGroup.Name + "-" + rule.Name
+				Id := fmt.Sprintf("%s-%s-%s-%s", grafanaHost, datasource.Name, alertGroup.Name, rule.Name)
 				result = append(result, discovery_kit_api.Target{
 					Id:         Id,
 					TargetType: TargetType,
@@ -228,7 +229,7 @@ func isAlertRuleCompatible(ds DataSource) bool {
 func isDatasourceHealthy(ctx context.Context, client *resty.Client, ds DataSource) bool {
 	res, _ := client.R().
 		SetContext(ctx).
-		Get("/api/datasources/" + strconv.Itoa(ds.ID) + "/health")
+		Get(fmt.Sprintf("/api/datasources/%d/health", ds.ID))
 
 	if res.StatusCode() != 200 {
 		log.Warn().Msgf("Datasource %s is not healthy, skipping discovery of alert rules for this one..", ds.Name)

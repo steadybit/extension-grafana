@@ -8,18 +8,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/aquilax/truncate"
-	"github.com/go-resty/resty/v2"
-	"github.com/rs/zerolog/log"
-	"github.com/steadybit/event-kit/go/event_kit_api"
-	extension_kit "github.com/steadybit/extension-kit"
-	"github.com/steadybit/extension-kit/exthttp"
 	"net/http"
 	"net/url"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aquilax/truncate"
+	"github.com/go-resty/resty/v2"
+	"github.com/rs/zerolog/log"
+	"github.com/steadybit/event-kit/go/event_kit_api"
+	extension_kit "github.com/steadybit/extension-kit"
+	"github.com/steadybit/extension-kit/exthttp"
 )
 
 func RegisterEventListenerHandlers() {
@@ -67,7 +68,7 @@ func onExperimentStarted(event event_kit_api.EventRequestBody) (*AnnotationBody,
 
 	return &AnnotationBody{
 		Tags:      tags,
-		Text:      "Experiment " + event.ExperimentExecution.ExperimentKey,
+		Text:      fmt.Sprintf("Experiment %s", event.ExperimentExecution.ExperimentKey),
 		Time:      startTime,
 		NeedPatch: false,
 	}, nil
@@ -92,7 +93,7 @@ func onExperimentStepStarted(event event_kit_api.EventRequestBody) (*AnnotationB
 
 	return &AnnotationBody{
 		Tags:      tags,
-		Text:      "Step " + getActionName(*event.ExperimentStepExecution),
+		Text:      fmt.Sprintf("Step %s", getActionName(*event.ExperimentStepExecution)),
 		Time:      startTime,
 		NeedPatch: false,
 	}, nil
@@ -151,15 +152,15 @@ func getActionName(stepExecution event_kit_api.ExperimentStepExecution) string {
 func getEventBaseTags(event event_kit_api.EventRequestBody) []string {
 	tags := []string{
 		"source:Steadybit",
-		"env:" + truncate.Truncate(event.Environment.Name, 20, "...", truncate.PositionEnd),
-		"event:" + truncate.Truncate(event.EventName, 50, "...", truncate.PositionEnd),
-		"event_id:" + event.Id.String(),
-		"tenant:" + truncate.Truncate(event.Tenant.Name, 10, "...", truncate.PositionEnd),
-		"tenant_key:" + event.Tenant.Key,
+		fmt.Sprintf("env:%s", truncate.Truncate(event.Environment.Name, 20, "...", truncate.PositionEnd)),
+		fmt.Sprintf("event:%s", truncate.Truncate(event.EventName, 50, "...", truncate.PositionEnd)),
+		fmt.Sprintf("event_id:%s", event.Id.String()),
+		fmt.Sprintf("tenant:%s", truncate.Truncate(event.Tenant.Name, 10, "...", truncate.PositionEnd)),
+		fmt.Sprintf("tenant_key:%s", event.Tenant.Key),
 	}
 
 	if event.Team != nil {
-		tags = append(tags, "team_name:"+event.Team.Name, "team_key:"+event.Team.Key)
+		tags = append(tags, fmt.Sprintf("team_name:%s", event.Team.Name), fmt.Sprintf("team_key:%s", event.Team.Key))
 	}
 
 	return tags
@@ -170,19 +171,19 @@ func getExecutionTags(event event_kit_api.EventRequestBody) []string {
 		return []string{}
 	}
 	tags := []string{
-		"exec_id:" + fmt.Sprintf("%g", event.ExperimentExecution.ExecutionId),
-		"exp_key:" + event.ExperimentExecution.ExperimentKey,
-		"exp_name:" + truncate.Truncate(event.ExperimentExecution.Name, 20, "...", truncate.PositionEnd),
+		fmt.Sprintf("exec_id:%g", event.ExperimentExecution.ExecutionId),
+		fmt.Sprintf("exp_key:%s", event.ExperimentExecution.ExperimentKey),
+		fmt.Sprintf("exp_name:%s", truncate.Truncate(event.ExperimentExecution.Name, 20, "...", truncate.PositionEnd)),
 	}
 
 	if event.ExperimentExecution.StartedTime.IsZero() {
-		tags = append(tags, "started_time:"+time.Now().Format(time.RFC3339))
+		tags = append(tags, fmt.Sprintf("started_time:%s", time.Now().Format(time.RFC3339)))
 	} else {
-		tags = append(tags, "started_time:"+event.ExperimentExecution.StartedTime.Format(time.RFC3339))
+		tags = append(tags, fmt.Sprintf("started_time:%s", event.ExperimentExecution.StartedTime.Format(time.RFC3339)))
 	}
 
 	if event.ExperimentExecution.EndedTime != nil && !(*event.ExperimentExecution.EndedTime).IsZero() {
-		tags = append(tags, "ended_time:"+event.ExperimentExecution.EndedTime.Format(time.RFC3339))
+		tags = append(tags, fmt.Sprintf("ended_time:%s", event.ExperimentExecution.EndedTime.Format(time.RFC3339)))
 	}
 
 	return tags
@@ -286,7 +287,7 @@ func patchAnnotation(ctx context.Context, client *resty.Client, annotation *Anno
 		SetContext(ctx).
 		SetResult(&annotationResponse).
 		SetBody(fmt.Sprintf(`{"timeEnd": %d}`, annotation.TimeEnd)).
-		Patch("/api/annotations/" + annotation.ID)
+		Patch(fmt.Sprintf("/api/annotations/%s", annotation.ID))
 
 	if err != nil {
 		log.Err(err).Msgf("Failed to patch annotation ID %s. Full response: %v", annotation.ID, res.String())
