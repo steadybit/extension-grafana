@@ -10,17 +10,17 @@ package extalertrules
 import (
 	"context"
 	"fmt"
+	"net/url"
+	"slices"
+	"time"
+
 	"github.com/go-resty/resty/v2"
-	"github.com/rs/zerolog/log"
 	"github.com/steadybit/action-kit/go/action_kit_api/v2"
 	"github.com/steadybit/action-kit/go/action_kit_sdk"
 	"github.com/steadybit/extension-grafana/config"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/extbuild"
 	"github.com/steadybit/extension-kit/extutil"
-	"net/url"
-	"slices"
-	"time"
 )
 
 type AlertRuleStateCheckAction struct{}
@@ -197,32 +197,9 @@ func (m *AlertRuleStateCheckAction) Status(ctx context.Context, state *AlertRule
 func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, client *resty.Client) (*action_kit_api.StatusResult, error) {
 	now := time.Now()
 
-	var grafanaResponse AlertsStates
-	var alertRule *AlertRule
-
-	uri := "/api/prometheus/" + state.AlertRuleDatasource + "/api/v1/rules"
-	res, err := client.R().
-		SetContext(ctx).
-		SetResult(&grafanaResponse).
-		Get(uri)
-
+	alertRule, err := getAlertState(ctx, state, client)
 	if err != nil {
-		return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to retrieve alerts states from Grafana for Datasource %s with uri %s.", state.AlertRuleDatasource, uri), err))
-	}
-
-	if !res.IsSuccess() {
-		log.Err(err).Msgf("Grafana API responded with unexpected status code %d while retrieving alert rule states for Datasource %s. Full response: %v", res.StatusCode(), state.AlertRuleDatasource, res.String())
-	} else {
-		for _, alertGroup := range grafanaResponse.AlertsData.AlertsGroups {
-			idx := slices.IndexFunc(alertGroup.AlertsRules, func(c AlertRule) bool { return c.Name == state.AlertRuleName })
-			if idx != -1 {
-				alertRule = &alertGroup.AlertsRules[idx]
-				break
-			}
-		}
-		if alertRule == nil {
-			return nil, extutil.Ptr(extension_kit.ToError(fmt.Sprintf("Failed to retrieve your alert rule %s from Grafana for Datasource %s. Full response: %v", state.AlertRuleName, state.AlertRuleDatasource, res.String()), err))
-		}
+		return nil, err
 	}
 
 	completed := now.After(state.End)
@@ -254,15 +231,44 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 		}
 	}
 
-	metrics := []action_kit_api.Metric{
-		*toMetric(state.AlertRuleId, alertRule, now),
-	}
-
 	return &action_kit_api.StatusResult{
 		Completed: completed,
 		Error:     checkError,
-		Metrics:   extutil.Ptr(metrics),
+		Metrics: &[]action_kit_api.Metric{
+			*toMetric(state.AlertRuleId, alertRule, now),
+		},
 	}, nil
+}
+
+func getAlertState(ctx context.Context, state *AlertRuleCheckState, client *resty.Client) (*AlertRule, error) {
+	var grafanaResponse AlertsStates
+	uri := fmt.Sprintf("/api/prometheus/%s/api/v1/rules", state.AlertRuleDatasource)
+	res, err := client.R().
+		SetContext(ctx).
+		SetResult(&grafanaResponse).
+		Get(uri)
+
+	if err != nil {
+		return nil, extension_kit.ToError(fmt.Sprintf("Failed to retrieve alerts states from Grafana for Datasource %s with uri %s.", state.AlertRuleDatasource, uri), err)
+	}
+
+	if !res.IsSuccess() {
+		return nil, &extension_kit.ExtensionError{
+			Title:  fmt.Sprintf("Grafana API responded with unexpected status code %d while retrieving alert rule states for Datasource %s", res.StatusCode(), state.AlertRuleDatasource),
+			Detail: extutil.Ptr(fmt.Sprintf("Full response: %s", res.String())),
+		}
+	}
+
+	for _, alertGroup := range grafanaResponse.AlertsData.AlertsGroups {
+		if idx := slices.IndexFunc(alertGroup.AlertsRules, func(c AlertRule) bool { return c.Name == state.AlertRuleName }); idx != -1 {
+			return &alertGroup.AlertsRules[idx], nil
+		}
+	}
+
+	return nil, &extension_kit.ExtensionError{
+		Title:  fmt.Sprintf("Failed to retrieve your alert rule %s from Grafana for Datasource %s.", state.AlertRuleName, state.AlertRuleDatasource),
+		Detail: extutil.Ptr(fmt.Sprintf("Full response: %s", res.String())),
+	}
 }
 
 func toMetric(alertRuleID string, alertRule *AlertRule, now time.Time) *action_kit_api.Metric {
