@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.0.8
+
+- Fix nil pointer in grafana error handling
+- Update dependencies
+
 ## v1.0.7
 
 - Update dependencies
