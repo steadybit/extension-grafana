@@ -9,6 +9,8 @@ grafana:
   apiBaseUrl: ""
   # grafana.existingSecret -- If defined, will skip secret creation and instead assume that the referenced secret contains the keys api-token.
   existingSecret: null
+  # grafana.sendAnnotations -- If true, the extension will send annotations to Grafana for experiment events.
+  sendAnnotations: false
 
 image:
   # image.name -- The container image to use for the Steadybit grafana extension.

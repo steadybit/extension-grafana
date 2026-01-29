@@ -19,11 +19,16 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/rs/zerolog/log"
 	"github.com/steadybit/event-kit/go/event_kit_api"
+	"github.com/steadybit/extension-grafana/config"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/exthttp"
 )
 
 func RegisterEventListenerHandlers() {
+	if !config.Config.SendAnnotations {
+		log.Info().Msg("Annotations are disabled. Skipping event listener registration.")
+		return
+	}
 	exthttp.RegisterHttpHandler("/events/experiment-started", handle(onExperimentStarted))
 	exthttp.RegisterHttpHandler("/events/experiment-completed", handle(onExperimentCompleted))
 	exthttp.RegisterHttpHandler("/events/experiment-step-started", handle(onExperimentStepStarted))

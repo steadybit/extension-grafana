@@ -19,6 +19,7 @@ type Specification struct {
 	ServiceToken                     string   `json:"serviceToken" split_words:"true" required:"true"`
 	ApiBaseUrl                       string   `json:"apiBaseUrl" split_words:"true" required:"true"`
 	DiscoveryAttributesExcludesAlert []string `json:"discoveryAttributesExcludesAlertRules" split_words:"true" required:"false"`
+	SendAnnotations                  bool     `json:"sendAnnotations" split_words:"true" required:"false" default:"false"`
 }
 
 var (

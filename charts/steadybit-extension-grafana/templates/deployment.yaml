@@ -67,6 +67,8 @@ spec:
                   key: service-token
             - name: STEADYBIT_EXTENSION_API_BASE_URL
               value: {{ .Values.grafana.apiBaseUrl }}
+            - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+              value: {{ .Values.grafana.sendAnnotations | quote }}
             {{- with .Values.extraEnv }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
