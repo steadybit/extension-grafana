@@ -67,8 +67,8 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 				},
 			}),
 		}),
-		Technology:  extutil.Ptr("Grafana"),
-		Category:    extutil.Ptr("Grafana"), //Can be removed in Q1/24 - support for backward compatibility of old sidebar
+		Technology: extutil.Ptr("Grafana"),
+
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.TimeControlInternal,
 		Parameters: []action_kit_api.ActionParameter{
