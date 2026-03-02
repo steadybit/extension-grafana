@@ -9,12 +9,14 @@ package e2e
 
 import (
 	"fmt"
-	"github.com/rs/zerolog/log"
-	"github.com/steadybit/extension-grafana/extalertrules"
-	"github.com/steadybit/extension-kit/exthttp"
 	"net"
 	"net/http"
 	"net/http/httptest"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/steadybit/extension-grafana/extalertrules"
+	"github.com/steadybit/extension-kit/exthttp"
 )
 
 type mockServer struct {
@@ -43,7 +45,7 @@ func createMockGrafanaServer() *mockServer {
 }
 
 func handler[T any](getter func() T) http.Handler {
-	return exthttp.PanicRecovery(exthttp.LogRequest(exthttp.GetterAsHandler(getter)))
+	return exthttp.PanicRecovery(exthttp.LogRequestWithDefaultLogLevel(exthttp.GetterAsHandler(getter), zerolog.DebugLevel))
 }
 
 func (m *mockServer) viewDatasources() []extalertrules.DataSource {
