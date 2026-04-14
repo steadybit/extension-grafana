@@ -19,7 +19,7 @@ import (
 func TestPrepareExtractsState(t *testing.T) {
 	// Given
 	request := extutil.JsonMangle(action_kit_api.PrepareActionRequestBody{
-		Config: map[string]interface{}{
+		Config: map[string]any{
 			"duration":          1000 * 60,
 			"expectedStateList": []string{"firing"},
 		},
@@ -32,9 +32,9 @@ func TestPrepareExtractsState(t *testing.T) {
 				"grafana.alert-rule.name":       {"test_firing"},
 			},
 		},
-		ExecutionContext: extutil.Ptr(action_kit_api.ExecutionContext{
-			ExperimentUri: extutil.Ptr("<uri-to-experiment>"),
-			ExecutionUri:  extutil.Ptr("<uri-to-execution>"),
+		ExecutionContext: new(action_kit_api.ExecutionContext{
+			ExperimentUri: new("<uri-to-experiment>"),
+			ExecutionUri:  new("<uri-to-execution>"),
 		}),
 	})
 	action := AlertRuleStateCheckAction{}

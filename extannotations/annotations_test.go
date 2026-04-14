@@ -3,7 +3,6 @@ package extannotations
 import (
 	"context"
 	"encoding/json"
-	"github.com/steadybit/extension-kit/extutil"
 
 	"github.com/steadybit/event-kit/go/event_kit_api"
 	"strconv"
@@ -186,10 +185,10 @@ func TestOnExperimentStepStarted(t *testing.T) {
 				State:         "test",
 			},
 			ExperimentStepExecution: &event_kit_api.ExperimentStepExecution{
-				ActionId:      extutil.Ptr("test"),
+				ActionId:      new("test"),
 				ActionKind:    nil,
-				ActionName:    extutil.Ptr("test"),
-				CustomLabel:   extutil.Ptr("test"),
+				ActionName:    new("test"),
+				CustomLabel:   new("test"),
 				EndedTime:     nil,
 				ExecutionId:   0,
 				ExperimentKey: "test",
@@ -253,10 +252,10 @@ func TestOnExperimentStarted(t *testing.T) {
 				State:         "test",
 			},
 			ExperimentStepExecution: &event_kit_api.ExperimentStepExecution{
-				ActionId:      extutil.Ptr("test"),
+				ActionId:      new("test"),
 				ActionKind:    nil,
-				ActionName:    extutil.Ptr("test"),
-				CustomLabel:   extutil.Ptr("test"),
+				ActionName:    new("test"),
+				CustomLabel:   new("test"),
 				EndedTime:     nil,
 				ExecutionId:   0,
 				ExperimentKey: "test",
@@ -319,10 +318,10 @@ func TestOnExperimentCompleted(t *testing.T) {
 				State:         "test",
 			},
 			ExperimentStepExecution: &event_kit_api.ExperimentStepExecution{
-				ActionId:      extutil.Ptr("test"),
+				ActionId:      new("test"),
 				ActionKind:    nil,
-				ActionName:    extutil.Ptr("test"),
-				CustomLabel:   extutil.Ptr("test"),
+				ActionName:    new("test"),
+				CustomLabel:   new("test"),
 				EndedTime:     nil,
 				ExecutionId:   0,
 				ExperimentKey: "test",
@@ -379,10 +378,10 @@ func TestOnExperimentStepCompleted(t *testing.T) {
 				State:         "test",
 			},
 			ExperimentStepExecution: &event_kit_api.ExperimentStepExecution{
-				ActionId:      extutil.Ptr("test"),
+				ActionId:      new("test"),
 				ActionKind:    nil,
-				ActionName:    extutil.Ptr("test"),
-				CustomLabel:   extutil.Ptr("test"),
+				ActionName:    new("test"),
+				CustomLabel:   new("test"),
 				EndedTime:     &endTime,
 				ExecutionId:   0,
 				ExperimentKey: "test",

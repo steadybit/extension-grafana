@@ -55,19 +55,19 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 		Label:       "Alert Rule Check",
 		Description: "collects information about the alert rule state and optionally verifies that the state value is the one expected.",
 		Version:     extbuild.GetSemverVersionStringOrUnknown(),
-		Icon:        extutil.Ptr(targetIcon),
-		TargetSelection: extutil.Ptr(action_kit_api.TargetSelection{
+		Icon:        new(targetIcon),
+		TargetSelection: new(action_kit_api.TargetSelection{
 			TargetType:          TargetType,
 			QuantityRestriction: extutil.Ptr(action_kit_api.QuantityRestrictionAll),
-			SelectionTemplates: extutil.Ptr([]action_kit_api.TargetSelectionTemplate{
+			SelectionTemplates: new([]action_kit_api.TargetSelectionTemplate{
 				{
 					Label:       "alert rule id",
-					Description: extutil.Ptr("Find alert rule by id"),
+					Description: new("Find alert rule by id"),
 					Query:       "grafana.alert-rule.id=\"\"",
 				},
 			}),
 		}),
-		Technology: extutil.Ptr("Grafana"),
+		Technology: new("Grafana"),
 
 		Kind:        action_kit_api.Check,
 		TimeControl: action_kit_api.TimeControlInternal,
@@ -75,18 +75,18 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 			{
 				Name:         "duration",
 				Label:        "Duration",
-				Description:  extutil.Ptr(""),
+				Description:  new(""),
 				Type:         action_kit_api.ActionParameterTypeDuration,
-				DefaultValue: extutil.Ptr("30s"),
-				Order:        extutil.Ptr(1),
-				Required:     extutil.Ptr(true),
+				DefaultValue: new("30s"),
+				Order:        new(1),
+				Required:     new(true),
 			},
 			{
 				Name:        "expectedStateList",
 				Label:       "Expected State List",
-				Description: extutil.Ptr(""),
+				Description: new(""),
 				Type:        action_kit_api.ActionParameterTypeStringArray,
-				Options: extutil.Ptr([]action_kit_api.ParameterOption{
+				Options: new([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "Firing",
 						Value: "firing",
@@ -104,16 +104,16 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 						Value: "inactive",
 					},
 				}),
-				Required: extutil.Ptr(false),
-				Order:    extutil.Ptr(2),
+				Required: new(false),
+				Order:    new(2),
 			},
 			{
 				Name:         "stateCheckMode",
 				Label:        "State Check Mode",
-				Description:  extutil.Ptr("How often should the state be checked ?"),
+				Description:  new("How often should the state be checked ?"),
 				Type:         action_kit_api.ActionParameterTypeString,
-				DefaultValue: extutil.Ptr(stateCheckModeAllTheTime),
-				Options: extutil.Ptr([]action_kit_api.ParameterOption{
+				DefaultValue: new(stateCheckModeAllTheTime),
+				Options: new([]action_kit_api.ParameterOption{
 					action_kit_api.ExplicitParameterOption{
 						Label: "All the time",
 						Value: stateCheckModeAllTheTime,
@@ -123,11 +123,11 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 						Value: stateCheckModeAtLeastOnce,
 					},
 				}),
-				Required: extutil.Ptr(true),
-				Order:    extutil.Ptr(3),
+				Required: new(true),
+				Order:    new(3),
 			},
 		},
-		Widgets: extutil.Ptr([]action_kit_api.Widget{
+		Widgets: new([]action_kit_api.Widget{
 			action_kit_api.StateOverTimeWidget{
 				Type:  action_kit_api.ComSteadybitWidgetStateOverTime,
 				Title: "Grafana Prometheus Alert Rule State",
@@ -143,16 +143,16 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 				Tooltip: action_kit_api.StateOverTimeWidgetTooltipConfig{
 					From: "tooltip",
 				},
-				Url: extutil.Ptr(action_kit_api.StateOverTimeWidgetUrlConfig{
-					From: extutil.Ptr("url"),
+				Url: new(action_kit_api.StateOverTimeWidgetUrlConfig{
+					From: new("url"),
 				}),
-				Value: extutil.Ptr(action_kit_api.StateOverTimeWidgetValueConfig{
-					Hide: extutil.Ptr(true),
+				Value: new(action_kit_api.StateOverTimeWidgetValueConfig{
+					Hide: new(true),
 				}),
 			},
 		}),
-		Status: extutil.Ptr(action_kit_api.MutatingEndpointReferenceWithCallInterval{
-			CallInterval: extutil.Ptr("1s"),
+		Status: new(action_kit_api.MutatingEndpointReferenceWithCallInterval{
+			CallInterval: new("1s"),
 		}),
 	}
 }
@@ -160,7 +160,7 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 func (m *AlertRuleStateCheckAction) Prepare(_ context.Context, state *AlertRuleCheckState, request action_kit_api.PrepareActionRequestBody) (*action_kit_api.PrepareResult, error) {
 	alertRuleId := request.Target.Attributes["grafana.alert-rule.id"]
 	if len(alertRuleId) == 0 {
-		return nil, extutil.Ptr(extension_kit.ToError("Target is missing the 'grafana.alert-rule.id' attribute.", nil))
+		return nil, new(extension_kit.ToError("Target is missing the 'grafana.alert-rule.id' attribute.", nil))
 	}
 
 	duration := request.Config["duration"].(float64)
@@ -208,7 +208,7 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 	if len(state.ExpectedState) > 0 {
 		if state.StateCheckMode == stateCheckModeAllTheTime {
 			if !slices.Contains(state.ExpectedState, alertRule.State) {
-				checkError = extutil.Ptr(action_kit_api.ActionKitError{
+				checkError = new(action_kit_api.ActionKitError{
 					Title: fmt.Sprintf("AlertRule '%s' has state '%s' whereas '%s' is expected.",
 						alertRule.Name,
 						alertRule.State,
@@ -221,7 +221,7 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 				state.StateCheckSuccess = true
 			}
 			if completed && !state.StateCheckSuccess {
-				checkError = extutil.Ptr(action_kit_api.ActionKitError{
+				checkError = new(action_kit_api.ActionKitError{
 					Title: fmt.Sprintf("AlertRule '%s' didn't have status '%s' at least once.",
 						alertRule.Name,
 						state.ExpectedState),
@@ -255,7 +255,7 @@ func getAlertState(ctx context.Context, state *AlertRuleCheckState, client *rest
 	if !res.IsSuccess() {
 		return nil, &extension_kit.ExtensionError{
 			Title:  fmt.Sprintf("Grafana API responded with unexpected status code %d while retrieving alert rule states for Datasource %s", res.StatusCode(), state.AlertRuleDatasource),
-			Detail: extutil.Ptr(fmt.Sprintf("Full response: %s", res.String())),
+			Detail: new(fmt.Sprintf("Full response: %s", res.String())),
 		}
 	}
 
@@ -267,7 +267,7 @@ func getAlertState(ctx context.Context, state *AlertRuleCheckState, client *rest
 
 	return nil, &extension_kit.ExtensionError{
 		Title:  fmt.Sprintf("Failed to retrieve your alert rule %s from Grafana for Datasource %s.", state.AlertRuleName, state.AlertRuleDatasource),
-		Detail: extutil.Ptr(fmt.Sprintf("Full response: %s", res.String())),
+		Detail: new(fmt.Sprintf("Full response: %s", res.String())),
 	}
 }
 
@@ -286,8 +286,8 @@ func toMetric(alertRuleID string, alertRule *AlertRule, now time.Time) *action_k
 		state = "danger"
 	}
 
-	return extutil.Ptr(action_kit_api.Metric{
-		Name: extutil.Ptr("grafana_alert_rule_state"),
+	return new(action_kit_api.Metric{
+		Name: new("grafana_alert_rule_state"),
 		Metric: map[string]string{
 			"grafana.alert-rule.id":   alertRuleID,
 			"grafana.alert-rule.name": alertRule.Name,

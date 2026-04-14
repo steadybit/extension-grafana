@@ -13,21 +13,21 @@ type AnnotationResponse struct {
 }
 
 type Annotation struct {
-	ID           int                    `json:"id"`
-	AlertID      int                    `json:"alertId"`
-	DashboardID  int                    `json:"dashboardId"`
-	DashboardUID string                 `json:"dashboardUID"`
-	PanelID      int                    `json:"panelId"`
-	UserID       int                    `json:"userId"`
-	UserName     string                 `json:"userName"`
-	NewState     string                 `json:"newState"`
-	PrevState    string                 `json:"prevState"`
-	Time         int64                  `json:"time"`
-	TimeEnd      int64                  `json:"timeEnd"`
-	Text         string                 `json:"text"`
-	Metric       string                 `json:"metric"`
-	Tags         []string               `json:"tags"`
-	Data         map[string]interface{} `json:"data"`
+	ID           int            `json:"id"`
+	AlertID      int            `json:"alertId"`
+	DashboardID  int            `json:"dashboardId"`
+	DashboardUID string         `json:"dashboardUID"`
+	PanelID      int            `json:"panelId"`
+	UserID       int            `json:"userId"`
+	UserName     string         `json:"userName"`
+	NewState     string         `json:"newState"`
+	PrevState    string         `json:"prevState"`
+	Time         int64          `json:"time"`
+	TimeEnd      int64          `json:"timeEnd"`
+	Text         string         `json:"text"`
+	Metric       string         `json:"metric"`
+	Tags         []string       `json:"tags"`
+	Data         map[string]any `json:"data"`
 }
 type AnnotationBody struct {
 	Tags      []string `json:"tags"`
