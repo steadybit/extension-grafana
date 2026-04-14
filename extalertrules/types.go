@@ -8,24 +8,24 @@
 package extalertrules
 
 type DataSource struct {
-	ID          int         `json:"id"`
-	UID         string      `json:"uid"`
-	OrgID       int         `json:"orgId"`
-	Name        string      `json:"name"`
-	Type        string      `json:"type"`
-	TypeName    string      `json:"typeName"`
-	TypeLogoUrl string      `json:"typeLogoUrl"`
-	Access      string      `json:"access"`
-	URL         string      `json:"url"`
-	User        string      `json:"user"`
-	Database    string      `json:"database"`
-	BasicAuth   bool        `json:"basicAuth"`
-	IsDefault   bool        `json:"isDefault"`
-	JsonData    interface{} `json:"jsonData"`
-	ReadOnly    bool        `json:"readOnly"`
+	ID          int    `json:"id"`
+	UID         string `json:"uid"`
+	OrgID       int    `json:"orgId"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	TypeName    string `json:"typeName"`
+	TypeLogoUrl string `json:"typeLogoUrl"`
+	Access      string `json:"access"`
+	URL         string `json:"url"`
+	User        string `json:"user"`
+	Database    string `json:"database"`
+	BasicAuth   bool   `json:"basicAuth"`
+	IsDefault   bool   `json:"isDefault"`
+	JsonData    any    `json:"jsonData"`
+	ReadOnly    bool   `json:"readOnly"`
 }
 type AlertsStates struct {
-	AlertsData AlertsData `json:"data,omitempty"`
+	AlertsData AlertsData `json:"data"`
 	Status     string     `json:"status"`
 }
 
