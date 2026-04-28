@@ -37,7 +37,7 @@ func createMockGrafanaServer() *mockServer {
 
 	mock := &mockServer{http: &server, state: "CLEAR"}
 	mux.Handle("GET /api/datasources", handler(mock.viewDatasources))
-	mux.Handle("GET /api/datasources/{id}/health", handler(mock.viewGrafanaAlertRuleHealthCheck))
+	mux.Handle("GET /api/datasources/uid/{uid}/health", handler(mock.viewGrafanaAlertRuleHealthCheck))
 	mux.Handle("GET /api/prometheus/loki/api/v1/rules", handler(mock.viewLokiAlertRules))
 	mux.Handle("GET /api/prometheus/prometheus/api/v1/rules", handler(mock.viewPrometheusAlertRules))
 	mux.Handle("GET /api/prometheus/grafana/api/v1/rules", handler(mock.viewGrafanaAlertRules))
