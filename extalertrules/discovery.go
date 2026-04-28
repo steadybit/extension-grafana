@@ -228,8 +228,8 @@ func isAlertRuleCompatible(ds DataSource) bool {
 func isDatasourceHealthy(ctx context.Context, client *resty.Client, ds DataSource) bool {
 	res, _ := client.R().
 		SetContext(ctx).
-		Get(fmt.Sprintf("/api/datasources/%d/health", ds.ID))
-
+		Get(fmt.Sprintf("/api/datasources/uid/%s/health", ds.UID))
+	// Use new endpoint because of deprecated id usage: https://grafana.com/whats-new/2026-04-14-deprecated-data-source-apis-disabled-by-default/
 	if res.StatusCode() != 200 {
 		log.Warn().Msgf("Datasource %s is not healthy, skipping discovery of alert rules for this one..", ds.Name)
 	}
