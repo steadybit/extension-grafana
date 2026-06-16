@@ -105,14 +105,24 @@ func onExperimentStepStarted(event event_kit_api.EventRequestBody) (*AnnotationB
 }
 
 func onExperimentCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
-	log.Debug().Msg("onExperimentStepCompleted, tagging:")
+	if event.ExperimentExecution == nil {
+		return nil, errors.New("missing ExperimentExecution in event")
+	}
+
+	log.Debug().Msg("onExperimentCompleted, tagging:")
 	tags := getEventBaseTags(event)
 	log.Debug().Msgf("getEventBaseTags: %v", tags)
 	tags = append(tags, getExecutionTags(event)...)
 	log.Debug().Msgf("getExecutionTags: %v", tags)
 	tags = removeDuplicates(tags)
 	log.Debug().Msgf("removeDuplicates: %v", tags)
-	return &AnnotationBody{Tags: tags, Time: event.ExperimentExecution.StartedTime.UnixMilli(), TimeEnd: event.ExperimentExecution.EndedTime.UnixMilli(), NeedPatch: true}, nil
+
+	var endTime int64
+	if event.ExperimentExecution.EndedTime != nil {
+		endTime = event.ExperimentExecution.EndedTime.UnixMilli()
+	}
+
+	return &AnnotationBody{Tags: tags, Time: event.ExperimentExecution.StartedTime.UnixMilli(), TimeEnd: endTime, NeedPatch: true}, nil
 }
 
 func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
@@ -182,13 +192,13 @@ func getExecutionTags(event event_kit_api.EventRequestBody) []string {
 	}
 
 	if event.ExperimentExecution.StartedTime.IsZero() {
-		tags = append(tags, fmt.Sprintf("started_time:%s", time.Now().Format(time.RFC3339)))
+		tags = append(tags, fmt.Sprintf("started_time:%s", formatTagTime(time.Now())))
 	} else {
-		tags = append(tags, fmt.Sprintf("started_time:%s", event.ExperimentExecution.StartedTime.Format(time.RFC3339)))
+		tags = append(tags, fmt.Sprintf("started_time:%s", formatTagTime(event.ExperimentExecution.StartedTime)))
 	}
 
 	if event.ExperimentExecution.EndedTime != nil && !(*event.ExperimentExecution.EndedTime).IsZero() {
-		tags = append(tags, fmt.Sprintf("ended_time:%s", event.ExperimentExecution.EndedTime.Format(time.RFC3339)))
+		tags = append(tags, fmt.Sprintf("ended_time:%s", formatTagTime(*event.ExperimentExecution.EndedTime)))
 	}
 
 	return tags
@@ -210,6 +220,24 @@ func getStepTags(step event_kit_api.ExperimentStepExecution) []string {
 	tags = append(tags, fmt.Sprintf("step_id:%s", step.Id))
 
 	return tags
+}
+
+// formatTagTime renders a timestamp for use inside an annotation tag value.
+// Grafana treats the ":" in "key:value" tags as a separator and cuts the pill
+// at the first colon, so an RFC3339 value like "2026-06-15T19:21:04Z" would be
+// displayed as just "2026-06-15T19". We keep the value colon-free so the full
+// timestamp stays visible.
+func formatTagTime(t time.Time) string {
+	return strings.ReplaceAll(t.Format(time.RFC3339), ":", ".")
+}
+
+func findTagWithPrefix(tags []string, prefix string) (string, bool) {
+	for _, tag := range tags {
+		if strings.HasPrefix(tag, prefix) {
+			return tag, true
+		}
+	}
+	return "", false
 }
 
 func removeDuplicates(tags []string) []string {
@@ -249,7 +277,17 @@ func handlePatchAnnotation(ctx context.Context, client *resty.Client, annotation
 
 	switch len(annotationsFound) {
 	case 1:
-		annotation.ID = strconv.Itoa(annotationsFound[0].ID)
+		found := annotationsFound[0]
+		annotation.ID = strconv.Itoa(found.ID)
+		// The PATCH overwrites the annotation's tags, so start from the tags that
+		// already exist on the found annotation (e.g. started_time, event:...created)
+		// and add the ended_time tag computed for the completion event. This keeps
+		// the search discriminator tags intact while finally exposing the end time.
+		finalTags := found.Tags
+		if tag, ok := findTagWithPrefix(annotation.Tags, "ended_time:"); ok {
+			finalTags = removeDuplicates(append(found.Tags, tag))
+		}
+		annotation.Tags = finalTags
 		patchAnnotation(ctx, client, annotation)
 	case 0:
 		log.Warn().Msgf("Failed to find annotation with tags %s.", tagsSearched)
@@ -287,11 +325,20 @@ func findAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 }
 
 func patchAnnotation(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {
+	patchBody, err := json.Marshal(map[string]any{
+		"timeEnd": annotation.TimeEnd,
+		"tags":    annotation.Tags,
+	})
+	if err != nil {
+		log.Err(err).Msgf("Failed to marshal patch body for annotation ID %s.", annotation.ID)
+		return
+	}
+
 	var annotationResponse AnnotationResponse
 	res, err := client.R().
 		SetContext(ctx).
 		SetResult(&annotationResponse).
-		SetBody(fmt.Sprintf(`{"timeEnd": %d}`, annotation.TimeEnd)).
+		SetBody(patchBody).
 		Patch(fmt.Sprintf("/api/annotations/%s", annotation.ID))
 
 	if err != nil {
