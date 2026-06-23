@@ -2,7 +2,6 @@
 
 ## v1.1.4
 
-- build: rename workflow_dispatch input labels for the GH UI
 - chore(deps): bump alpine from 3.23 to 3.24
 - chore(deps): bump golang.org/x/net to v0.55.0 (CVE-2026-39821) (#88)
 - chore(deps): update dependencies
