@@ -229,20 +229,23 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 	if len(state.ExpectedState) > 0 {
 		if state.StateCheckMode == stateCheckModeAllTheTime {
 			if !slices.Contains(state.ExpectedState, alertRule.State) {
-				title := fmt.Sprintf("AlertRule '%s' has state '%s' whereas '%s' is expected.",
-					alertRule.Name,
-					alertRule.State,
-					state.ExpectedState)
 				if state.FailEarly {
-					// Fail as soon as a deviating state is observed.
+					// Fail as soon as a deviating state is observed (present tense - it is deviating now).
 					checkError = new(action_kit_api.ActionKitError{
-						Title:  title,
+						Title: fmt.Sprintf("AlertRule '%s' has state '%s' whereas '%s' is expected.",
+							alertRule.Name,
+							alertRule.State,
+							state.ExpectedState),
 						Status: extutil.Ptr(action_kit_api.Failed),
 					})
 				} else {
-					// Keep collecting events and remember the deviation to report it at the end of the step.
+					// Keep collecting events and remember the deviation to report it at the end of the
+					// step (past tense - the state may have recovered by the time this is reported).
 					state.DeviationSeen = true
-					state.DeviationTitle = title
+					state.DeviationTitle = fmt.Sprintf("AlertRule '%s' had state '%s' whereas '%s' is expected.",
+						alertRule.Name,
+						alertRule.State,
+						state.ExpectedState)
 				}
 			}
 			if !state.FailEarly && completed && state.DeviationSeen {

@@ -166,6 +166,7 @@ func TestAlertRuleCheckStatus_AllTheTimeMode_Mismatch(t *testing.T) {
 		AlertRuleId:         "id2",
 		ExpectedState:       []string{"normal"},
 		StateCheckMode:      stateCheckModeAllTheTime,
+		FailEarly:           true,
 		End:                 time.Now().Add(-1 * time.Second), // already completed
 	}
 
@@ -232,7 +233,7 @@ func TestAlertRuleCheckStatus_AllTheTime_FailAtEnd(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, res.Completed)
 	assert.NotNil(t, res.Error)
-	assert.Contains(t, res.Error.Title, "has state 'firing' whereas")
+	assert.Contains(t, res.Error.Title, "had state 'firing' whereas") // past tense at end of step
 }
 
 func TestAlertRuleCheckStatus_AllTheTime_FailAtEnd_NoDeviation(t *testing.T) {
