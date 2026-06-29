@@ -50,7 +50,7 @@ func TestPrepareExtractsState(t *testing.T) {
 	//require.Equal(t, "prometheus", state.AlertRuleDatasource)
 	require.Equal(t, "test_firing", state.AlertRuleName)
 	require.Equal(t, "firing", state.ExpectedState[0])
-
+	require.True(t, state.FailEarly) // defaults to true when not provided (non-breaking for old experiments)
 }
 
 // RoundTripperFunc lets us stub HTTP responses.
@@ -166,6 +166,7 @@ func TestAlertRuleCheckStatus_AllTheTimeMode_Mismatch(t *testing.T) {
 		AlertRuleId:         "id2",
 		ExpectedState:       []string{"normal"},
 		StateCheckMode:      stateCheckModeAllTheTime,
+		FailEarly:           true,
 		End:                 time.Now().Add(-1 * time.Second), // already completed
 	}
 
@@ -175,6 +176,90 @@ func TestAlertRuleCheckStatus_AllTheTimeMode_Mismatch(t *testing.T) {
 	assert.True(t, res.Completed)
 	assert.NotNil(t, res.Error)
 	assert.Contains(t, res.Error.Title, "has state 'firing' whereas")
+}
+
+func newFiringClient() *resty.Client {
+	body := `{"data":{"groups":[{"rules":[{"name":"r","state":"firing"}]}]}}`
+	return newTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       io.NopCloser(strings.NewReader(body)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})
+}
+
+func TestAlertRuleCheckStatus_AllTheTime_FailEarly(t *testing.T) {
+	client := newFiringClient()
+	state := &AlertRuleCheckState{
+		AlertRuleDatasource: "DS1",
+		AlertRuleName:       "r",
+		AlertRuleId:         "id",
+		ExpectedState:       []string{"normal"},
+		StateCheckMode:      stateCheckModeAllTheTime,
+		FailEarly:           true,
+		End:                 time.Now().Add(1 * time.Minute), // not yet completed
+	}
+
+	res, err := AlertRuleCheckStatus(context.Background(), state, client)
+	assert.NoError(t, err)
+	assert.False(t, res.Completed)
+	assert.NotNil(t, res.Error, "fail early should report the deviation immediately")
+	assert.Contains(t, res.Error.Title, "has state 'firing' whereas")
+}
+
+func TestAlertRuleCheckStatus_AllTheTime_FailAtEnd(t *testing.T) {
+	client := newFiringClient()
+	state := &AlertRuleCheckState{
+		AlertRuleDatasource: "DS1",
+		AlertRuleName:       "r",
+		AlertRuleId:         "id",
+		ExpectedState:       []string{"normal"},
+		StateCheckMode:      stateCheckModeAllTheTime,
+		FailEarly:           false,
+		End:                 time.Now().Add(1 * time.Minute), // not yet completed
+	}
+
+	// First poll: deviation observed but time not up -> no error, deviation remembered
+	res, err := AlertRuleCheckStatus(context.Background(), state, client)
+	assert.NoError(t, err)
+	assert.False(t, res.Completed)
+	assert.Nil(t, res.Error, "should not fail early")
+	assert.True(t, state.DeviationSeen)
+
+	// Second poll: time is up -> fails at the end
+	state.End = time.Now().Add(-1 * time.Second)
+	res, err = AlertRuleCheckStatus(context.Background(), state, client)
+	assert.NoError(t, err)
+	assert.True(t, res.Completed)
+	assert.NotNil(t, res.Error)
+	assert.Contains(t, res.Error.Title, "had state 'firing' whereas") // past tense at end of step
+}
+
+func TestAlertRuleCheckStatus_AllTheTime_FailAtEnd_NoDeviation(t *testing.T) {
+	body := `{"data":{"groups":[{"rules":[{"name":"r","state":"normal"}]}]}}`
+	client := newTestClient(func(req *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       io.NopCloser(strings.NewReader(body)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})
+	state := &AlertRuleCheckState{
+		AlertRuleDatasource: "DS1",
+		AlertRuleName:       "r",
+		AlertRuleId:         "id",
+		ExpectedState:       []string{"normal"},
+		StateCheckMode:      stateCheckModeAllTheTime,
+		FailEarly:           false,
+		End:                 time.Now().Add(-1 * time.Second), // already completed
+	}
+
+	res, err := AlertRuleCheckStatus(context.Background(), state, client)
+	assert.NoError(t, err)
+	assert.True(t, res.Completed)
+	assert.Nil(t, res.Error)
+	assert.False(t, state.DeviationSeen)
 }
 
 func TestAlertRuleCheckStatus_AtLeastOnceMode(t *testing.T) {
