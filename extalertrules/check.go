@@ -39,6 +39,11 @@ type AlertRuleCheckState struct {
 	ExpectedState       []string
 	StateCheckMode      string
 	StateCheckSuccess   bool
+	FailEarly           bool
+	// DeviationSeen and DeviationTitle are used in 'fail at end' mode (FailEarly = false) to remember
+	// that a deviating state was observed during the step so the failure can be reported once the step ends.
+	DeviationSeen  bool
+	DeviationTitle string
 }
 
 func NewAlertRuleStateCheckAction() action_kit_sdk.Action[AlertRuleCheckState] {
@@ -126,6 +131,16 @@ func (m *AlertRuleStateCheckAction) Describe() action_kit_api.ActionDescription 
 				Required: new(true),
 				Order:    new(3),
 			},
+			{
+				Name:         "failEarly",
+				Label:        "Fail early",
+				Description:  new("If enabled, the check fails as soon as a deviating state is observed. If disabled, the check keeps collecting events for the whole duration and only fails at the end of the step. Only affects the 'All the time' mode; 'At least once' can only be evaluated at the end of the step."),
+				Type:         action_kit_api.ActionParameterTypeBoolean,
+				DefaultValue: new("true"),
+				Advanced:     new(true),
+				Required:     new(false),
+				Order:        new(4),
+			},
 		},
 		Widgets: new([]action_kit_api.Widget{
 			action_kit_api.StateOverTimeWidget{
@@ -176,6 +191,12 @@ func (m *AlertRuleStateCheckAction) Prepare(_ context.Context, state *AlertRuleC
 		stateCheckMode = fmt.Sprintf("%v", request.Config["stateCheckMode"])
 	}
 
+	// Default to failing early to preserve the previous behavior for experiments that don't set this parameter.
+	state.FailEarly = true
+	if request.Config["failEarly"] != nil {
+		state.FailEarly = extutil.ToBool(request.Config["failEarly"])
+	}
+
 	state.AlertRuleId = alertRuleId[0]
 	state.AlertRuleDatasource = request.Target.Attributes["grafana.alert-rule.datasource"][0]
 	state.AlertRuleName = request.Target.Attributes["grafana.alert-rule.name"][0]
@@ -208,11 +229,25 @@ func AlertRuleCheckStatus(ctx context.Context, state *AlertRuleCheckState, clien
 	if len(state.ExpectedState) > 0 {
 		if state.StateCheckMode == stateCheckModeAllTheTime {
 			if !slices.Contains(state.ExpectedState, alertRule.State) {
+				title := fmt.Sprintf("AlertRule '%s' has state '%s' whereas '%s' is expected.",
+					alertRule.Name,
+					alertRule.State,
+					state.ExpectedState)
+				if state.FailEarly {
+					// Fail as soon as a deviating state is observed.
+					checkError = new(action_kit_api.ActionKitError{
+						Title:  title,
+						Status: extutil.Ptr(action_kit_api.Failed),
+					})
+				} else {
+					// Keep collecting events and remember the deviation to report it at the end of the step.
+					state.DeviationSeen = true
+					state.DeviationTitle = title
+				}
+			}
+			if !state.FailEarly && completed && state.DeviationSeen {
 				checkError = new(action_kit_api.ActionKitError{
-					Title: fmt.Sprintf("AlertRule '%s' has state '%s' whereas '%s' is expected.",
-						alertRule.Name,
-						alertRule.State,
-						state.ExpectedState),
+					Title:  state.DeviationTitle,
 					Status: extutil.Ptr(action_kit_api.Failed),
 				})
 			}
