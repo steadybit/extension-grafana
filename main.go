@@ -26,8 +26,6 @@ import (
 	"github.com/steadybit/extension-kit/extsignals"
 )
 
-var startedAt = time.Now().Format(time.RFC3339)
-
 func main() {
 	extlogging.InitZeroLog()
 
@@ -45,7 +43,7 @@ func main() {
 	action_kit_sdk.RegisterAction(extalertrules.NewAlertRuleStateCheckAction())
 	extannotations.RegisterEventListenerHandlers()
 
-	exthttp.RegisterHttpHandler("/", exthttp.IfNoneMatchHandler(func() string { return startedAt }, exthttp.GetterAsHandler(getExtensionList)))
+	exthttp.RegisterRevisionedHandler("/", getExtensionList)
 
 	extsignals.ActivateSignalHandlers()
 
