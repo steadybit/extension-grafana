@@ -1,8 +1,16 @@
 # Changelog
 
-## Unreleased
+## v1.1.5
 
 - Add a "Fail early" option to the alert rule check. When enabled (the default, matching the previous behavior), the check fails as soon as a deviating state is observed. When disabled, the check keeps collecting events for the whole duration and only fails at the end of the step.
+- chore(deps): bump github.com/steadybit/event-kit/go/event_kit_api
+- chore(deps): bump go to 1.26.5 (#94)
+- chore(deps): bump go-openapi/swag/loading to fix go mod tidy (#96)
+- chore: add Claude Code workflows (#92)
+- chore: silence SonarQube finding on secrets: inherit in Claude workflows
+- ci: skip build on .trivyignore.yml-only changes [skip ci]
+- feat(alert rule check): add fail early option (#93)
+- refactor: register extension index via exthttp.RegisterRevisionedHandler (#95)
 
 ## v1.1.4
 
