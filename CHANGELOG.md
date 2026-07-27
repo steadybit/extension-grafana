@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.6
+
+- chore(deps): update dependencies
+
 ## v1.1.5
 
 - Add a "Fail early" option to the alert rule check. When enabled (the default, matching the previous behavior), the check fails as soon as a deviating state is observed. When disabled, the check keeps collecting events for the whole duration and only fails at the end of the step.
