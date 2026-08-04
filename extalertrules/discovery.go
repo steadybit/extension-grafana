@@ -127,6 +127,9 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 
 			for _, alertGroup := range perDatasourceResponse.AlertsData.AlertsGroups {
 				for _, rule := range alertGroup.AlertsRules {
+					if !isAlertingRule(rule) {
+						continue
+					}
 					Id := fmt.Sprintf("%s-%s-%s-%s", grafanaHost, datasource.Name, alertGroup.Name, rule.Name)
 					result = append(result, discovery_kit_api.Target{
 						Id:         Id,
@@ -167,6 +170,9 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 
 		for _, alertGroup := range grafanaAlertRules.AlertsData.AlertsGroups {
 			for _, rule := range alertGroup.AlertsRules {
+				if !isAlertingRule(rule) {
+					continue
+				}
 				Id := fmt.Sprintf("%s-%s-%s-%s", grafanaHost, datasource.Name, alertGroup.Name, rule.Name)
 				result = append(result, discovery_kit_api.Target{
 					Id:         Id,
@@ -184,7 +190,31 @@ func getAllAlertRules(ctx context.Context, client *resty.Client) []discovery_kit
 		}
 	}
 
-	return discovery_kit_commons.ApplyAttributeExcludes(result, config.Config.DiscoveryAttributesExcludesAlert)
+	return discovery_kit_commons.ApplyAttributeExcludes(dedupeTargetsById(result), config.Config.DiscoveryAttributesExcludesAlert)
+}
+
+// isAlertingRule filters out recording rules: they have no alert state, so they cannot be checked.
+// An empty type is kept for backwards compatibility with Grafana versions not reporting the field.
+func isAlertingRule(rule AlertRule) bool {
+	return rule.Type == "alerting" || rule.Type == ""
+}
+
+// dedupeTargetsById drops targets sharing an already seen id. The same rule name may appear multiple
+// times within one rule group (e.g. kube-prometheus-stack defines KubePersistentVolumeFillingUp twice
+// with different thresholds), but the check action resolves rules by name only, so such targets are
+// interchangeable and reporting them all would create duplicate targets on the platform.
+func dedupeTargetsById(targets []discovery_kit_api.Target) []discovery_kit_api.Target {
+	seen := make(map[string]struct{}, len(targets))
+	deduped := make([]discovery_kit_api.Target, 0, len(targets))
+	for _, target := range targets {
+		if _, ok := seen[target.Id]; ok {
+			log.Debug().Msgf("Skipping duplicate alert rule target '%s'", target.Id)
+			continue
+		}
+		seen[target.Id] = struct{}{}
+		deduped = append(deduped, target)
+	}
+	return deduped
 }
 
 func getAllCompatibleDatasource(ctx context.Context, client *resty.Client) []DataSource {
