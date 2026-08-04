@@ -207,8 +207,17 @@ func (m *AlertRuleStateCheckAction) Prepare(_ context.Context, state *AlertRuleC
 	return nil, nil
 }
 
-func (m *AlertRuleStateCheckAction) Start(_ context.Context, _ *AlertRuleCheckState) (*action_kit_api.StartResult, error) {
-	return nil, nil
+func (m *AlertRuleStateCheckAction) Start(ctx context.Context, state *AlertRuleCheckState) (*action_kit_api.StartResult, error) {
+	statusResult, err := AlertRuleCheckStatus(ctx, state, RestyClient)
+	if statusResult == nil {
+		return nil, err
+	}
+	return &action_kit_api.StartResult{
+		Artifacts: statusResult.Artifacts,
+		Error:     statusResult.Error,
+		Messages:  statusResult.Messages,
+		Metrics:   statusResult.Metrics,
+	}, err
 }
 
 func (m *AlertRuleStateCheckAction) Status(ctx context.Context, state *AlertRuleCheckState) (*action_kit_api.StatusResult, error) {
