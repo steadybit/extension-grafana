@@ -2,6 +2,13 @@
 
 ## v1.1.7
 
+- chore(deps): bump github.com/jarcoal/httpmock from 1.4.1 to 1.4.2
+- feat: support filtering targets out of discovery
+- fix(alert rule discovery): deduplicate targets and exclude recording rules (#99)
+- fix: emit the alert rule state metric immediately on Start (#100)
+
+## v1.1.7
+
 - fix(alert rule discovery): deduplicate targets sharing the same id — the same rule name can appear multiple times within one Prometheus rule group (e.g. kube-prometheus-stack), which created duplicate targets on the platform
 - fix(alert rule discovery): exclude recording rules from discovery — they have no alert state and cannot be checked
 
