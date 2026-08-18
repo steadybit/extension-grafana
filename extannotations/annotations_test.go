@@ -24,7 +24,7 @@ import (
 // Grafana API. Blocking here made the extension exceed the agent's Request-Timeout, which
 // extension-kit answers with 503 "Timeout".
 func TestHandleDoesNotBlockOnGrafana(t *testing.T) {
-	drainAnnotationQueue(t)
+	worker := newAnnotationWorker(annotationQueueSize)
 
 	blocked := make(chan struct{})
 	RestyClient = resty.New()
@@ -62,7 +62,7 @@ func TestHandleDoesNotBlockOnGrafana(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		handle(onExperimentStepCompleted)(recorder, request, body)
+		handle(worker, onExperimentStepCompleted)(recorder, request, body)
 	}()
 
 	select {
@@ -73,7 +73,7 @@ func TestHandleDoesNotBlockOnGrafana(t *testing.T) {
 	require.Equal(t, 200, recorder.Code)
 
 	// The work is queued, not skipped: draining it hits Grafana.
-	startAnnotationWorker(t.Context())
+	worker.start(t.Context())
 	select {
 	case <-blocked:
 	case <-time.After(5 * time.Second):
@@ -81,40 +81,67 @@ func TestHandleDoesNotBlockOnGrafana(t *testing.T) {
 	}
 }
 
-// TestEnqueueAnnotationDropsWhenQueueIsFull makes sure a slow Grafana API cannot make the event
-// listener block once the queue is saturated.
-func TestEnqueueAnnotationDropsWhenQueueIsFull(t *testing.T) {
-	drainAnnotationQueue(t)
+// TestEnqueueDropsWhenQueueIsFull makes sure a slow Grafana API cannot make the event listener
+// block once the queue is saturated. The worker is deliberately not started, so nothing drains the
+// queue while the test inspects it.
+func TestEnqueueDropsWhenQueueIsFull(t *testing.T) {
+	worker := newAnnotationWorker(4)
 
-	for range annotationQueueSize {
-		enqueueAnnotation(&AnnotationBody{})
+	for range 4 {
+		worker.enqueue(&AnnotationBody{})
 	}
-	require.Len(t, annotationQueue, annotationQueueSize)
+	require.Len(t, worker.queue, 4)
 
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		enqueueAnnotation(&AnnotationBody{Tags: []string{"dropped"}})
+		worker.enqueue(&AnnotationBody{Tags: []string{"dropped"}})
 	}()
 
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		t.Fatal("enqueueAnnotation blocked on a full queue")
+		t.Fatal("enqueue blocked on a full queue")
 	}
-	require.Len(t, annotationQueue, annotationQueueSize)
+	require.Len(t, worker.queue, 4)
 }
 
-// drainAnnotationQueue empties the package level queue so tests do not observe each other's items.
-func drainAnnotationQueue(t *testing.T) {
-	t.Helper()
-	for {
-		select {
-		case <-annotationQueue:
-		default:
-			return
-		}
+// TestDrainWaitsForQueuedAnnotations covers the shutdown path: a rolling restart must not discard
+// annotations that are still queued.
+func TestDrainWaitsForQueuedAnnotations(t *testing.T) {
+	worker := newAnnotationWorker(annotationQueueSize)
+
+	RestyClient = resty.New()
+	httpmock.ActivateNonDefault(RestyClient.GetClient())
+	defer httpmock.DeactivateAndReset()
+	httpmock.RegisterResponder("POST", "/api/annotations",
+		func(*http.Request) (*http.Response, error) {
+			time.Sleep(20 * time.Millisecond)
+			return httpmock.NewStringResponse(200, `{"id":1}`), nil
+		})
+
+	for range 5 {
+		worker.enqueue(&AnnotationBody{Tags: []string{"tag1"}, NeedPatch: false})
 	}
+	worker.start(t.Context())
+
+	worker.drain(5 * time.Second)
+
+	require.Empty(t, worker.queue)
+	require.Equal(t, 5, httpmock.GetCallCountInfo()["POST /api/annotations"])
+}
+
+// TestDrainGivesUpAfterTimeout makes sure an unresponsive Grafana API cannot block a shutdown.
+func TestDrainGivesUpAfterTimeout(t *testing.T) {
+	worker := newAnnotationWorker(annotationQueueSize)
+	worker.enqueue(&AnnotationBody{Tags: []string{"never sent"}})
+
+	// No worker is started, so nothing drains the queue.
+	start := time.Now()
+	worker.drain(200 * time.Millisecond)
+
+	require.GreaterOrEqual(t, time.Since(start), 200*time.Millisecond)
+	require.Len(t, worker.queue, 1)
 }
 
 // TestSendAnnotations tests the sendAnnotations function

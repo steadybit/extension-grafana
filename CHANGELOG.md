@@ -8,6 +8,7 @@
   Annotations are now queued and processed by a single worker, which keeps the order of the events.
 - fix: bound requests to the Grafana API with a timeout (`STEADYBIT_EXTENSION_API_TIMEOUT`, default
   `5s`). Resty applies no timeout by default.
+- fix: drain queued annotations on shutdown so a rolling restart does not silently discard them.
 - fix: reject an `experiment-step-completed` event without step execution data instead of panicking.
 
 ## v1.1.8
