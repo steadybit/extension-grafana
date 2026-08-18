@@ -131,6 +131,52 @@ func TestDrainWaitsForQueuedAnnotations(t *testing.T) {
 	require.Equal(t, 5, httpmock.GetCallCountInfo()["POST /api/annotations"])
 }
 
+// TestDrainWaitsForAnInFlightAnnotation covers the interleaving where the queue is already empty
+// but the Grafana call for the last annotation is still running. A drain that only looked at the
+// queue length would return here and let the shutdown abandon that annotation.
+func TestDrainWaitsForAnInFlightAnnotation(t *testing.T) {
+	worker := newAnnotationWorker(annotationQueueSize)
+
+	RestyClient = resty.New()
+	httpmock.ActivateNonDefault(RestyClient.GetClient())
+	defer httpmock.DeactivateAndReset()
+
+	inFlight := make(chan struct{})
+	release := make(chan struct{})
+	httpmock.RegisterResponder("POST", "/api/annotations",
+		func(*http.Request) (*http.Response, error) {
+			close(inFlight)
+			<-release
+			return httpmock.NewStringResponse(200, `{"id":1}`), nil
+		})
+
+	worker.enqueue(&AnnotationBody{Tags: []string{"tag1"}})
+	worker.start(t.Context())
+
+	<-inFlight
+	require.Empty(t, worker.queue, "the queue must be empty for this test to exercise the race")
+
+	drained := make(chan struct{})
+	go func() {
+		defer close(drained)
+		worker.drain(5 * time.Second)
+	}()
+
+	select {
+	case <-drained:
+		t.Fatal("drain returned while an annotation was still in flight")
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	close(release)
+	select {
+	case <-drained:
+	case <-time.After(5 * time.Second):
+		t.Fatal("drain did not return after the in-flight annotation completed")
+	}
+	require.Equal(t, 1, httpmock.GetCallCountInfo()["POST /api/annotations"])
+}
+
 // TestDrainGivesUpAfterTimeout makes sure an unresponsive Grafana API cannot block a shutdown.
 func TestDrainGivesUpAfterTimeout(t *testing.T) {
 	worker := newAnnotationWorker(annotationQueueSize)
@@ -141,7 +187,7 @@ func TestDrainGivesUpAfterTimeout(t *testing.T) {
 	worker.drain(200 * time.Millisecond)
 
 	require.GreaterOrEqual(t, time.Since(start), 200*time.Millisecond)
-	require.Len(t, worker.queue, 1)
+	require.Equal(t, int64(1), worker.pending.Load())
 }
 
 // TestSendAnnotations tests the sendAnnotations function

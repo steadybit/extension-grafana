@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/aquilax/truncate"
@@ -44,15 +45,19 @@ var defaultAnnotationWorker = newAnnotationWorker(annotationQueueSize)
 // trigger event listener as failed.
 type annotationWorker struct {
 	queue chan *AnnotationBody
-	// idle is closed by the worker whenever it has emptied the queue, so a shutdown can tell
-	// pending work from a queue that has already been fully sent.
-	idle chan struct{}
+	// pending counts the annotations that are queued *or* currently being sent. Queue length alone
+	// is not enough: it drops to zero the moment the worker picks up the last annotation, while the
+	// Grafana call is still in flight and must not be abandoned by a shutdown.
+	pending atomic.Int64
+	// sent receives a signal after every completed send, so a drain can wait for pending to reach 0
+	// instead of polling.
+	sent chan struct{}
 }
 
 func newAnnotationWorker(queueSize int) *annotationWorker {
 	return &annotationWorker{
 		queue: make(chan *AnnotationBody, queueSize),
-		idle:  make(chan struct{}, 1),
+		sent:  make(chan struct{}, 1),
 	}
 }
 
@@ -89,45 +94,38 @@ func (w *annotationWorker) start(ctx context.Context) {
 				return
 			case annotation := <-w.queue:
 				w.send(ctx, annotation)
-			default:
-				w.signalIdle()
-				// Block until there is work again, so an empty queue does not spin.
-				select {
-				case <-ctx.Done():
-					return
-				case annotation := <-w.queue:
-					w.send(ctx, annotation)
-				}
+				w.pending.Add(-1)
+				w.signalSent()
 			}
 		}
 	}()
 }
 
-// signalIdle reports that the queue has been emptied, without blocking when nobody is waiting.
-func (w *annotationWorker) signalIdle() {
+// signalSent reports that one annotation finished, without blocking when nobody is draining.
+func (w *annotationWorker) signalSent() {
 	select {
-	case w.idle <- struct{}{}:
+	case w.sent <- struct{}{}:
 	default:
 	}
 }
 
-// drain waits until the worker has sent everything that is queued, giving up after timeout. It is
-// best effort: annotations still queued when the timeout hits are lost, which beats blocking a
-// shutdown indefinitely on an unresponsive Grafana API.
+// drain waits until everything that is queued or in flight has been sent, giving up after timeout.
+// It is best effort: annotations still pending when the timeout hits are lost, which beats blocking
+// a shutdown indefinitely on an unresponsive Grafana API.
 func (w *annotationWorker) drain(timeout time.Duration) {
-	if len(w.queue) == 0 {
+	if w.pending.Load() == 0 {
 		return
 	}
-	log.Info().Msgf("Waiting up to %s for %d queued annotation(s) to be sent.", timeout, len(w.queue))
+	log.Info().Msgf("Waiting up to %s for %d pending annotation(s) to be sent.", timeout, w.pending.Load())
 
 	deadline := time.After(timeout)
 	for {
 		select {
 		case <-deadline:
-			log.Warn().Msgf("Timed out draining annotations, %d were not sent.", len(w.queue))
+			log.Warn().Msgf("Timed out draining annotations, %d were not sent.", w.pending.Load())
 			return
-		case <-w.idle:
-			if len(w.queue) == 0 {
+		case <-w.sent:
+			if w.pending.Load() == 0 {
 				return
 			}
 		}
@@ -143,9 +141,13 @@ func (w *annotationWorker) send(ctx context.Context, annotation *AnnotationBody)
 // enqueue hands the annotation over to the worker, dropping it when the queue is saturated. It
 // never blocks: the caller is an event listener that has to answer the agent right away.
 func (w *annotationWorker) enqueue(annotation *AnnotationBody) {
+	// Count it before handing it over, so the worker can never complete and decrement before the
+	// increment is visible - which would let a concurrent drain see a pending count of 0 or below.
+	w.pending.Add(1)
 	select {
 	case w.queue <- annotation:
 	default:
+		w.pending.Add(-1)
 		log.Warn().Msgf("Annotation queue is full (%d entries), dropping annotation with tags %v. The Grafana API is likely too slow to keep up.", cap(w.queue), annotation.Tags)
 	}
 }
