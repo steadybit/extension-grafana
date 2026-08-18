@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.8
+
+- chore(deps): bump github.com/stretchr/testify from 1.11.1 to 1.12.0
+- chore(deps): bump steadybit kits and drop Go patch pin (#101)
+- chore(deps): bump steadybit kits and drop Go patch pin (#102)
+
 ## v1.1.7
 
 - chore(deps): bump github.com/jarcoal/httpmock from 1.4.1 to 1.4.2
