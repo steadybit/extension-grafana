@@ -18,6 +18,7 @@ You need to have a [Grafana service token](https://grafana.com/docs/grafana/late
 | `STEADYBIT_EXTENSION_API_BASE_URL`                            | `grafana.apiBaseUrl`                      | Grafana API Base URL (example: https://yourcompany.grafana.io)                                                             | yes      |         |
 | `STEADYBIT_EXTENSION_SEND_ANNOTATIONS`                        | `grafana.sendAnnotations`                 | Enable sending annotations to Grafana for experiment events                                                                | no       | `false` |
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ALERTRULE` | `discovery.attributes.excludes.alertrule` | List of Alert Rule Attributes which will be excluded during discovery. Checked by key equality and supporting trailing "*" | no       |         |
+| `STEADYBIT_EXTENSION_API_TIMEOUT`                             | via extraEnv variables                    | Timeout for a single request to the Grafana API, e.g. `5s`.                                                                 | no       | `5s`    |
 
 
 Beyond the settings above, this extension supports the configuration common to all Steadybit

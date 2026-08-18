@@ -1,8 +1,11 @@
 package extannotations
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 
 	"github.com/steadybit/event-kit/go/event_kit_api"
 	"strconv"
@@ -12,8 +15,107 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	"github.com/jarcoal/httpmock"
+	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// TestHandleDoesNotBlockOnGrafana verifies that the event listener answers without waiting for the
+// Grafana API. Blocking here made the extension exceed the agent's Request-Timeout, which
+// extension-kit answers with 503 "Timeout".
+func TestHandleDoesNotBlockOnGrafana(t *testing.T) {
+	drainAnnotationQueue(t)
+
+	blocked := make(chan struct{})
+	RestyClient = resty.New()
+	httpmock.ActivateNonDefault(RestyClient.GetClient())
+	defer httpmock.DeactivateAndReset()
+	httpmock.RegisterResponder("GET", "/api/annotations",
+		func(*http.Request) (*http.Response, error) {
+			close(blocked)
+			<-make(chan struct{}) // never returns
+			return nil, nil
+		})
+
+	startedTime := time.Now().Add(-time.Minute)
+	endedTime := time.Now()
+	body, err := json.Marshal(event_kit_api.EventRequestBody{
+		EventName:   "experiment.execution.step-completed",
+		Id:          uuid.New(),
+		Environment: &event_kit_api.Environment{Id: "test", Name: "gateway"},
+		Tenant:      event_kit_api.Tenant{Key: "key", Name: "name"},
+		ExperimentStepExecution: &event_kit_api.ExperimentStepExecution{
+			ExecutionId:   42,
+			ExperimentKey: "ExperimentKey",
+			Id:            uuid.New(),
+			Type:          event_kit_api.Action,
+			ActionId:      extutil.Ptr("some_action_id"),
+			StartedTime:   &startedTime,
+			EndedTime:     &endedTime,
+		},
+	})
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/events/experiment-step-completed", bytes.NewReader(body))
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		handle(onExperimentStepCompleted)(recorder, request, body)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("handler did not return - it is still waiting for the Grafana API")
+	}
+	require.Equal(t, 200, recorder.Code)
+
+	// The work is queued, not skipped: draining it hits Grafana.
+	startAnnotationWorker(t.Context())
+	select {
+	case <-blocked:
+	case <-time.After(5 * time.Second):
+		t.Fatal("queued annotation was never sent to Grafana")
+	}
+}
+
+// TestEnqueueAnnotationDropsWhenQueueIsFull makes sure a slow Grafana API cannot make the event
+// listener block once the queue is saturated.
+func TestEnqueueAnnotationDropsWhenQueueIsFull(t *testing.T) {
+	drainAnnotationQueue(t)
+
+	for range annotationQueueSize {
+		enqueueAnnotation(&AnnotationBody{})
+	}
+	require.Len(t, annotationQueue, annotationQueueSize)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		enqueueAnnotation(&AnnotationBody{Tags: []string{"dropped"}})
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("enqueueAnnotation blocked on a full queue")
+	}
+	require.Len(t, annotationQueue, annotationQueueSize)
+}
+
+// drainAnnotationQueue empties the package level queue so tests do not observe each other's items.
+func drainAnnotationQueue(t *testing.T) {
+	t.Helper()
+	for {
+		select {
+		case <-annotationQueue:
+		default:
+			return
+		}
+	}
+}
 
 // TestSendAnnotations tests the sendAnnotations function
 func TestSendAnnotations(t *testing.T) {

@@ -24,15 +24,60 @@ import (
 	"github.com/steadybit/extension-kit/exthttp"
 )
 
+const (
+	// annotationQueueSize bounds how many annotation updates may wait for the Grafana API.
+	annotationQueueSize = 256
+	// annotationTimeout bounds the entire Grafana interaction for a single event, i.e. a find plus
+	// a patch including their retries.
+	annotationTimeout = 30 * time.Second
+)
+
+var annotationQueue = make(chan *AnnotationBody, annotationQueueSize)
+
 func RegisterEventListenerHandlers() {
 	if !config.Config.SendAnnotations {
 		log.Info().Msg("Annotations are disabled. Skipping event listener registration.")
 		return
 	}
+	startAnnotationWorker(context.Background())
 	exthttp.RegisterHttpHandler("/events/experiment-started", handle(onExperimentStarted))
 	exthttp.RegisterHttpHandler("/events/experiment-completed", handle(onExperimentCompleted))
 	exthttp.RegisterHttpHandler("/events/experiment-step-started", handle(onExperimentStepStarted))
 	exthttp.RegisterHttpHandler("/events/experiment-step-completed", handle(onExperimentStepCompleted))
+}
+
+// startAnnotationWorker processes queued annotations until ctx is canceled. A single worker keeps
+// the order in which the platform delivered the events - a step's "started" annotation has to be
+// created before the "completed" event can patch it - and bounds the load put on the Grafana API.
+func startAnnotationWorker(ctx context.Context) {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case annotation := <-annotationQueue:
+				sendAnnotationsWithTimeout(ctx, annotation)
+			}
+		}
+	}()
+}
+
+func sendAnnotationsWithTimeout(ctx context.Context, annotation *AnnotationBody) {
+	ctx, cancel := context.WithTimeout(ctx, annotationTimeout)
+	defer cancel()
+	sendAnnotations(ctx, RestyClient, annotation)
+}
+
+// enqueueAnnotation hands the annotation over to the worker. The Grafana API must not be called on
+// the request goroutine: an event listener that blocks on a third-party API exceeds the agent's
+// Request-Timeout, extension-kit then answers 503 "Timeout", and the platform reports the trigger
+// event listener as failed.
+func enqueueAnnotation(annotation *AnnotationBody) {
+	select {
+	case annotationQueue <- annotation:
+	default:
+		log.Warn().Msgf("Annotation queue is full (%d entries), dropping annotation with tags %v. The Grafana API is likely too slow to keep up.", annotationQueueSize, annotation.Tags)
+	}
 }
 
 type eventHandler func(event event_kit_api.EventRequestBody) (*AnnotationBody, error)
@@ -48,7 +93,7 @@ func handle(handler eventHandler) func(w http.ResponseWriter, r *http.Request, b
 
 		if request, err := handler(event); err == nil {
 			if request != nil {
-				sendAnnotations(r.Context(), RestyClient, request)
+				enqueueAnnotation(request)
 			}
 		} else {
 			exthttp.WriteError(w, extension_kit.ToError(err.Error(), err))
@@ -126,6 +171,10 @@ func onExperimentCompleted(event event_kit_api.EventRequestBody) (*AnnotationBod
 }
 
 func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
+	if event.ExperimentStepExecution == nil {
+		return nil, errors.New("missing ExperimentStepExecution in event")
+	}
+
 	log.Debug().Msg("onExperimentStepCompleted, tagging:")
 	tags := getEventBaseTags(event)
 	log.Debug().Msgf("getEventBaseTags: %v", tags)
@@ -138,13 +187,11 @@ func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*Annotatio
 
 	var startTime int64
 	var endTime int64
-	if event.ExperimentStepExecution != nil {
-		if event.ExperimentStepExecution.StartedTime != nil {
-			startTime = event.ExperimentStepExecution.StartedTime.UnixMilli()
-		}
-		if event.ExperimentStepExecution.EndedTime != nil {
-			endTime = event.ExperimentStepExecution.EndedTime.UnixMilli()
-		}
+	if event.ExperimentStepExecution.StartedTime != nil {
+		startTime = event.ExperimentStepExecution.StartedTime.UnixMilli()
+	}
+	if event.ExperimentStepExecution.EndedTime != nil {
+		endTime = event.ExperimentStepExecution.EndedTime.UnixMilli()
 	}
 
 	return &AnnotationBody{Tags: tags, Time: startTime, TimeEnd: endTime, NeedPatch: true}, nil
