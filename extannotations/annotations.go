@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/aquilax/truncate"
@@ -22,22 +24,137 @@ import (
 	"github.com/steadybit/extension-grafana/config"
 	extension_kit "github.com/steadybit/extension-kit"
 	"github.com/steadybit/extension-kit/exthttp"
+	"github.com/steadybit/extension-kit/extsignals"
 )
+
+const (
+	// annotationQueueSize bounds how many annotation updates may wait for the Grafana API.
+	annotationQueueSize = 256
+	// annotationTimeout bounds the Grafana interaction for a single event, i.e. a find plus a patch
+	// and whatever retries fit into it. Attempts that no longer fit are cut short by the deadline.
+	annotationTimeout = 30 * time.Second
+	// annotationDrainTimeout bounds how long a shutdown waits for queued annotations to be sent.
+	annotationDrainTimeout = 10 * time.Second
+)
+
+var defaultAnnotationWorker = newAnnotationWorker(annotationQueueSize)
+
+// annotationWorker decouples the event listeners from the Grafana API. The Grafana API must not be
+// called on the request goroutine: an event listener that blocks on a third-party API exceeds the
+// agent's Request-Timeout, extension-kit then answers 503 "Timeout", and the platform reports the
+// trigger event listener as failed.
+type annotationWorker struct {
+	queue chan *AnnotationBody
+	// pending counts the annotations that are queued *or* currently being sent. Queue length alone
+	// is not enough: it drops to zero the moment the worker picks up the last annotation, while the
+	// Grafana call is still in flight and must not be abandoned by a shutdown.
+	pending atomic.Int64
+	// sent receives a signal after every completed send, so a drain can wait for pending to reach 0
+	// instead of polling.
+	sent chan struct{}
+}
+
+func newAnnotationWorker(queueSize int) *annotationWorker {
+	return &annotationWorker{
+		queue: make(chan *AnnotationBody, queueSize),
+		sent:  make(chan struct{}, 1),
+	}
+}
 
 func RegisterEventListenerHandlers() {
 	if !config.Config.SendAnnotations {
 		log.Info().Msg("Annotations are disabled. Skipping event listener registration.")
 		return
 	}
-	exthttp.RegisterHttpHandler("/events/experiment-started", handle(onExperimentStarted))
-	exthttp.RegisterHttpHandler("/events/experiment-completed", handle(onExperimentCompleted))
-	exthttp.RegisterHttpHandler("/events/experiment-step-started", handle(onExperimentStepStarted))
-	exthttp.RegisterHttpHandler("/events/experiment-step-completed", handle(onExperimentStepCompleted))
+	defaultAnnotationWorker.start(context.Background())
+	// Annotations are sent in the background, so without this a rolling restart would silently
+	// discard everything that is still queued. Run before the HTTP servers go down, so the queue
+	// can still be drained.
+	extsignals.AddSignalHandler(extsignals.SignalHandler{
+		Name:  "AnnotationWorkerDrain",
+		Order: extsignals.OrderStopCustom,
+		Handler: func(os.Signal) {
+			defaultAnnotationWorker.drain(annotationDrainTimeout)
+		},
+	})
+	exthttp.RegisterHttpHandler("/events/experiment-started", handle(defaultAnnotationWorker, onExperimentStarted))
+	exthttp.RegisterHttpHandler("/events/experiment-completed", handle(defaultAnnotationWorker, onExperimentCompleted))
+	exthttp.RegisterHttpHandler("/events/experiment-step-started", handle(defaultAnnotationWorker, onExperimentStepStarted))
+	exthttp.RegisterHttpHandler("/events/experiment-step-completed", handle(defaultAnnotationWorker, onExperimentStepCompleted))
+}
+
+// start processes queued annotations until ctx is canceled. Exactly one worker keeps the order in
+// which the platform delivered the events - a step's "started" annotation has to be created before
+// the "completed" event can patch it - and bounds the load put on the Grafana API.
+func (w *annotationWorker) start(ctx context.Context) {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case annotation := <-w.queue:
+				w.send(ctx, annotation)
+				w.pending.Add(-1)
+				w.signalSent()
+			}
+		}
+	}()
+}
+
+// signalSent reports that one annotation finished, without blocking when nobody is draining.
+func (w *annotationWorker) signalSent() {
+	select {
+	case w.sent <- struct{}{}:
+	default:
+	}
+}
+
+// drain waits until everything that is queued or in flight has been sent, giving up after timeout.
+// It is best effort: annotations still pending when the timeout hits are lost, which beats blocking
+// a shutdown indefinitely on an unresponsive Grafana API.
+func (w *annotationWorker) drain(timeout time.Duration) {
+	if w.pending.Load() == 0 {
+		return
+	}
+	log.Info().Msgf("Waiting up to %s for %d pending annotation(s) to be sent.", timeout, w.pending.Load())
+
+	deadline := time.After(timeout)
+	for {
+		select {
+		case <-deadline:
+			log.Warn().Msgf("Timed out draining annotations, %d were not sent.", w.pending.Load())
+			return
+		case <-w.sent:
+			if w.pending.Load() == 0 {
+				return
+			}
+		}
+	}
+}
+
+func (w *annotationWorker) send(ctx context.Context, annotation *AnnotationBody) {
+	ctx, cancel := context.WithTimeout(ctx, annotationTimeout)
+	defer cancel()
+	sendAnnotations(ctx, RestyClient, annotation)
+}
+
+// enqueue hands the annotation over to the worker, dropping it when the queue is saturated. It
+// never blocks: the caller is an event listener that has to answer the agent right away.
+func (w *annotationWorker) enqueue(annotation *AnnotationBody) {
+	// Count it before handing it over, so the worker can never complete and decrement before the
+	// increment is visible - which would let a concurrent drain see a pending count of 0 or below.
+	w.pending.Add(1)
+	select {
+	case w.queue <- annotation:
+	default:
+		w.pending.Add(-1)
+		log.Warn().Msgf("Annotation queue is full (%d entries), dropping annotation with tags %v. The Grafana API is likely too slow to keep up.", cap(w.queue), annotation.Tags)
+	}
 }
 
 type eventHandler func(event event_kit_api.EventRequestBody) (*AnnotationBody, error)
 
-func handle(handler eventHandler) func(w http.ResponseWriter, r *http.Request, body []byte) {
+func handle(worker *annotationWorker, handler eventHandler) func(w http.ResponseWriter, r *http.Request, body []byte) {
 	return func(w http.ResponseWriter, r *http.Request, body []byte) {
 
 		event, err := parseBodyToEventRequestBody(body)
@@ -48,7 +165,7 @@ func handle(handler eventHandler) func(w http.ResponseWriter, r *http.Request, b
 
 		if request, err := handler(event); err == nil {
 			if request != nil {
-				sendAnnotations(r.Context(), RestyClient, request)
+				worker.enqueue(request)
 			}
 		} else {
 			exthttp.WriteError(w, extension_kit.ToError(err.Error(), err))
@@ -126,6 +243,10 @@ func onExperimentCompleted(event event_kit_api.EventRequestBody) (*AnnotationBod
 }
 
 func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*AnnotationBody, error) {
+	if event.ExperimentStepExecution == nil {
+		return nil, errors.New("missing ExperimentStepExecution in event")
+	}
+
 	log.Debug().Msg("onExperimentStepCompleted, tagging:")
 	tags := getEventBaseTags(event)
 	log.Debug().Msgf("getEventBaseTags: %v", tags)
@@ -138,13 +259,11 @@ func onExperimentStepCompleted(event event_kit_api.EventRequestBody) (*Annotatio
 
 	var startTime int64
 	var endTime int64
-	if event.ExperimentStepExecution != nil {
-		if event.ExperimentStepExecution.StartedTime != nil {
-			startTime = event.ExperimentStepExecution.StartedTime.UnixMilli()
-		}
-		if event.ExperimentStepExecution.EndedTime != nil {
-			endTime = event.ExperimentStepExecution.EndedTime.UnixMilli()
-		}
+	if event.ExperimentStepExecution.StartedTime != nil {
+		startTime = event.ExperimentStepExecution.StartedTime.UnixMilli()
+	}
+	if event.ExperimentStepExecution.EndedTime != nil {
+		endTime = event.ExperimentStepExecution.EndedTime.UnixMilli()
 	}
 
 	return &AnnotationBody{Tags: tags, Time: startTime, TimeEnd: endTime, NeedPatch: true}, nil

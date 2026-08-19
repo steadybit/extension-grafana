@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- fix: the experiment event listeners no longer call the Grafana API on the request goroutine.
+  Waiting for the annotation find/patch round-trips made the extension exceed the agent's request
+  timeout, which was answered with `503 Timeout` and reported as a failed trigger event listener.
+  Annotations are now queued and processed by a single worker, which keeps the order of the events.
+- fix: bound requests to the Grafana API with a timeout (`STEADYBIT_EXTENSION_API_TIMEOUT`, default
+  `5s`). Resty applies no timeout by default.
+- fix: drain queued annotations on shutdown so a rolling restart does not silently discard them.
+- fix: reject an `experiment-step-completed` event without step execution data instead of panicking.
+
 ## v1.1.8
 
 - chore(deps): bump github.com/stretchr/testify from 1.11.1 to 1.12.0

@@ -1,8 +1,11 @@
 package extannotations
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 
 	"github.com/steadybit/event-kit/go/event_kit_api"
 	"strconv"
@@ -12,8 +15,180 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
 	"github.com/jarcoal/httpmock"
+	"github.com/steadybit/extension-kit/extutil"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+// TestHandleDoesNotBlockOnGrafana verifies that the event listener answers without waiting for the
+// Grafana API. Blocking here made the extension exceed the agent's Request-Timeout, which
+// extension-kit answers with 503 "Timeout".
+func TestHandleDoesNotBlockOnGrafana(t *testing.T) {
+	worker := newAnnotationWorker(annotationQueueSize)
+
+	blocked := make(chan struct{})
+	RestyClient = resty.New()
+	httpmock.ActivateNonDefault(RestyClient.GetClient())
+	defer httpmock.DeactivateAndReset()
+	httpmock.RegisterResponder("GET", "/api/annotations",
+		func(*http.Request) (*http.Response, error) {
+			close(blocked)
+			<-make(chan struct{}) // never returns
+			return nil, nil
+		})
+
+	startedTime := time.Now().Add(-time.Minute)
+	endedTime := time.Now()
+	body, err := json.Marshal(event_kit_api.EventRequestBody{
+		EventName:   "experiment.execution.step-completed",
+		Id:          uuid.New(),
+		Environment: &event_kit_api.Environment{Id: "test", Name: "gateway"},
+		Tenant:      event_kit_api.Tenant{Key: "key", Name: "name"},
+		ExperimentStepExecution: &event_kit_api.ExperimentStepExecution{
+			ExecutionId:   42,
+			ExperimentKey: "ExperimentKey",
+			Id:            uuid.New(),
+			Type:          event_kit_api.Action,
+			ActionId:      extutil.Ptr("some_action_id"),
+			StartedTime:   &startedTime,
+			EndedTime:     &endedTime,
+		},
+	})
+	require.NoError(t, err)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/events/experiment-step-completed", bytes.NewReader(body))
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		handle(worker, onExperimentStepCompleted)(recorder, request, body)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("handler did not return - it is still waiting for the Grafana API")
+	}
+	require.Equal(t, 200, recorder.Code)
+
+	// The work is queued, not skipped: draining it hits Grafana.
+	worker.start(t.Context())
+	select {
+	case <-blocked:
+	case <-time.After(5 * time.Second):
+		t.Fatal("queued annotation was never sent to Grafana")
+	}
+}
+
+// TestEnqueueDropsWhenQueueIsFull makes sure a slow Grafana API cannot make the event listener
+// block once the queue is saturated. The worker is deliberately not started, so nothing drains the
+// queue while the test inspects it.
+func TestEnqueueDropsWhenQueueIsFull(t *testing.T) {
+	worker := newAnnotationWorker(4)
+
+	for range 4 {
+		worker.enqueue(&AnnotationBody{})
+	}
+	require.Len(t, worker.queue, 4)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		worker.enqueue(&AnnotationBody{Tags: []string{"dropped"}})
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("enqueue blocked on a full queue")
+	}
+	require.Len(t, worker.queue, 4)
+}
+
+// TestDrainWaitsForQueuedAnnotations covers the shutdown path: a rolling restart must not discard
+// annotations that are still queued.
+func TestDrainWaitsForQueuedAnnotations(t *testing.T) {
+	worker := newAnnotationWorker(annotationQueueSize)
+
+	RestyClient = resty.New()
+	httpmock.ActivateNonDefault(RestyClient.GetClient())
+	defer httpmock.DeactivateAndReset()
+	httpmock.RegisterResponder("POST", "/api/annotations",
+		func(*http.Request) (*http.Response, error) {
+			time.Sleep(20 * time.Millisecond)
+			return httpmock.NewStringResponse(200, `{"id":1}`), nil
+		})
+
+	for range 5 {
+		worker.enqueue(&AnnotationBody{Tags: []string{"tag1"}, NeedPatch: false})
+	}
+	worker.start(t.Context())
+
+	worker.drain(5 * time.Second)
+
+	require.Empty(t, worker.queue)
+	require.Equal(t, 5, httpmock.GetCallCountInfo()["POST /api/annotations"])
+}
+
+// TestDrainWaitsForAnInFlightAnnotation covers the interleaving where the queue is already empty
+// but the Grafana call for the last annotation is still running. A drain that only looked at the
+// queue length would return here and let the shutdown abandon that annotation.
+func TestDrainWaitsForAnInFlightAnnotation(t *testing.T) {
+	worker := newAnnotationWorker(annotationQueueSize)
+
+	RestyClient = resty.New()
+	httpmock.ActivateNonDefault(RestyClient.GetClient())
+	defer httpmock.DeactivateAndReset()
+
+	inFlight := make(chan struct{})
+	release := make(chan struct{})
+	httpmock.RegisterResponder("POST", "/api/annotations",
+		func(*http.Request) (*http.Response, error) {
+			close(inFlight)
+			<-release
+			return httpmock.NewStringResponse(200, `{"id":1}`), nil
+		})
+
+	worker.enqueue(&AnnotationBody{Tags: []string{"tag1"}})
+	worker.start(t.Context())
+
+	<-inFlight
+	require.Empty(t, worker.queue, "the queue must be empty for this test to exercise the race")
+
+	drained := make(chan struct{})
+	go func() {
+		defer close(drained)
+		worker.drain(5 * time.Second)
+	}()
+
+	select {
+	case <-drained:
+		t.Fatal("drain returned while an annotation was still in flight")
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	close(release)
+	select {
+	case <-drained:
+	case <-time.After(5 * time.Second):
+		t.Fatal("drain did not return after the in-flight annotation completed")
+	}
+	require.Equal(t, 1, httpmock.GetCallCountInfo()["POST /api/annotations"])
+}
+
+// TestDrainGivesUpAfterTimeout makes sure an unresponsive Grafana API cannot block a shutdown.
+func TestDrainGivesUpAfterTimeout(t *testing.T) {
+	worker := newAnnotationWorker(annotationQueueSize)
+	worker.enqueue(&AnnotationBody{Tags: []string{"never sent"}})
+
+	// No worker is started, so nothing drains the queue.
+	start := time.Now()
+	worker.drain(200 * time.Millisecond)
+
+	require.GreaterOrEqual(t, time.Since(start), 200*time.Millisecond)
+	require.Equal(t, int64(1), worker.pending.Load())
+}
 
 // TestSendAnnotations tests the sendAnnotations function
 func TestSendAnnotations(t *testing.T) {
