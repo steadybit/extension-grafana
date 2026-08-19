@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 
 	"github.com/steadybit/event-kit/go/event_kit_api"
 	"strconv"
@@ -290,8 +292,13 @@ func TestFindAnnotations(t *testing.T) {
 		TimeEnd: testAnnotation.TimeEnd,
 	}
 
-	// Mock the get request
-	expectedQuery := "limit=10&tags=exec_id%3A73983&tags=exp_key%3AADM-891&tags=event%3Aexperiment.execution.created"
+	// Mock the get request. The search is bounded to the annotation's own time window widened by
+	// annotationSearchMargin, so Grafana does not have to scan the whole annotation history.
+	expectedQuery := fmt.Sprintf(
+		"limit=10&tags=exec_id%%3A73983&tags=exp_key%%3AADM-891&tags=event%%3Aexperiment.execution.created&from=%d&to=%d",
+		testAnnotation.Time-annotationSearchMargin.Milliseconds(),
+		testAnnotation.TimeEnd+annotationSearchMargin.Milliseconds(),
+	)
 	httpmock.RegisterResponderWithQuery("GET", "/api/annotations", expectedQuery,
 		httpmock.NewJsonResponderOrPanic(200, []Annotation{*testAnnotation}))
 
@@ -302,6 +309,84 @@ func TestFindAnnotations(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, annotations)
 	assert.Equal(t, 1, len(annotations))
+}
+
+func TestSearchWindow(t *testing.T) {
+	start := time.Date(2024, 7, 18, 8, 0, 0, 0, time.UTC).UnixMilli()
+	end := time.Date(2024, 7, 18, 9, 0, 0, 0, time.UTC).UnixMilli()
+	margin := annotationSearchMargin.Milliseconds()
+
+	tests := []struct {
+		name       string
+		annotation *AnnotationBody
+		wantFrom   int64
+		wantTo     int64
+		wantOk     bool
+	}{
+		{
+			name:       "brackets the annotation's own window",
+			annotation: &AnnotationBody{Time: start, TimeEnd: end},
+			wantFrom:   start - margin,
+			wantTo:     end + margin,
+			wantOk:     true,
+		},
+		{
+			name:       "falls back to the start time when there is no end time",
+			annotation: &AnnotationBody{Time: start},
+			wantFrom:   start - margin,
+			wantTo:     start + margin,
+			wantOk:     true,
+		},
+		{
+			name:       "ignores an end time that precedes the start",
+			annotation: &AnnotationBody{Time: end, TimeEnd: start},
+			wantFrom:   end - margin,
+			wantTo:     end + margin,
+			wantOk:     true,
+		},
+		{
+			// Without a start time the window would land on the epoch, so the search has to stay
+			// unbounded rather than look in the wrong place.
+			name:       "stays unbounded without a start time",
+			annotation: &AnnotationBody{TimeEnd: end},
+			wantOk:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			from, to, ok := searchWindow(tt.annotation)
+			require.Equal(t, tt.wantOk, ok)
+			if tt.wantOk {
+				require.Equal(t, tt.wantFrom, from)
+				require.Equal(t, tt.wantTo, to)
+				require.Less(t, from, to)
+			}
+		})
+	}
+}
+
+// TestFindAnnotationsStaysUnboundedWithoutStartTime makes sure the fallback really omits the
+// parameters instead of sending a window around the epoch.
+func TestFindAnnotationsStaysUnboundedWithoutStartTime(t *testing.T) {
+	client := resty.New()
+	httpmock.ActivateNonDefault(client.GetClient())
+	defer httpmock.DeactivateAndReset()
+
+	var gotQuery url.Values
+	httpmock.RegisterResponder("GET", "/api/annotations",
+		func(req *http.Request) (*http.Response, error) {
+			gotQuery = req.URL.Query()
+			return httpmock.NewJsonResponse(200, []Annotation{{ID: 1}})
+		})
+
+	_, _, err := findAnnotations(context.TODO(), client,
+		&AnnotationBody{Tags: []string{"exec_id:73983", "exp_key:ADM-891"}})
+
+	require.NoError(t, err)
+	require.NotEmpty(t, gotQuery.Get("tags"))
+	require.Empty(t, gotQuery.Get("from"))
+	require.Empty(t, gotQuery.Get("to"))
 }
 
 // TestPatchAnnotation tests the patchAnnotation function
