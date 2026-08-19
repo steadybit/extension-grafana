@@ -35,6 +35,9 @@ const (
 	annotationTimeout = 30 * time.Second
 	// annotationDrainTimeout bounds how long a shutdown waits for queued annotations to be sent.
 	annotationDrainTimeout = 10 * time.Second
+	// annotationSearchMargin widens the time window an annotation is searched in, so clock skew
+	// between this extension and Grafana cannot push the annotation outside the window.
+	annotationSearchMargin = 1 * time.Hour
 )
 
 var defaultAnnotationWorker = newAnnotationWorker(annotationQueueSize)
@@ -417,6 +420,16 @@ func handlePatchAnnotation(ctx context.Context, client *resty.Client, annotation
 
 func findAnnotations(ctx context.Context, client *resty.Client, annotation *AnnotationBody) ([]Annotation, *resty.Response, error) {
 	var annotationsFound []Annotation
+
+	params := url.Values{
+		"tags":  selectTagsForSearch(annotation.Tags),
+		"limit": {"10"},
+	}
+	if from, to, ok := searchWindow(annotation); ok {
+		params.Set("from", strconv.FormatInt(from, 10))
+		params.Set("to", strconv.FormatInt(to, 10))
+	}
+
 	resp, err := client.R().
 		SetContext(ctx).
 		SetResult(&annotationsFound).
@@ -425,22 +438,38 @@ func findAnnotations(ctx context.Context, client *resty.Client, annotation *Anno
 				return len(*r.Result().(*[]Annotation)) == 0
 			},
 		).
-		SetQueryParamsFromValues(url.Values{
-			"tags":  selectTagsForSearch(annotation.Tags),
-			"limit": {"10"},
-		}).
+		SetQueryParamsFromValues(params).
 		Get("/api/annotations")
-
-	//log.Debug().Msg(url.Values{
-	//	"tags":  selectTagsForSearch(annotation.Tags),
-	//	"limit": {"10"},
-	//}.Encode())
 
 	if err != nil {
 		return nil, resp, err
 	}
 
 	return annotationsFound, resp, nil
+}
+
+// searchWindow returns the epoch millisecond range to search the annotation in, widened by
+// annotationSearchMargin to tolerate clock skew between this extension and Grafana.
+//
+// Without from/to, Grafana searches the whole annotation history. Since this extension writes one
+// annotation per experiment and per step and nothing prunes them, that search keeps getting slower
+// until it no longer answers within the client timeout - at which point completion events can never
+// patch their annotation with the end time.
+//
+// It reports false when the annotation carries no usable start time (the started time was missing
+// from the event), so the search stays unbounded instead of looking in the wrong place.
+func searchWindow(annotation *AnnotationBody) (int64, int64, bool) {
+	if annotation.Time <= 0 {
+		return 0, 0, false
+	}
+
+	end := annotation.TimeEnd
+	if end < annotation.Time {
+		end = annotation.Time
+	}
+
+	margin := annotationSearchMargin.Milliseconds()
+	return annotation.Time - margin, end + margin, true
 }
 
 func patchAnnotation(ctx context.Context, client *resty.Client, annotation *AnnotationBody) {

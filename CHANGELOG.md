@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- fix: bound the annotation search to the annotation's own time window. Searching `/api/annotations`
+  by tags without `from`/`to` makes Grafana scan the whole annotation history, which grows with every
+  experiment and step until the search no longer answers within the request timeout - leaving every
+  annotation without its end time.
+
 - fix: the experiment event listeners no longer call the Grafana API on the request goroutine.
   Waiting for the annotation find/patch round-trips made the extension exceed the agent's request
   timeout, which was answered with `503 Timeout` and reported as a failed trigger event listener.
