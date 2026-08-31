@@ -1,20 +1,18 @@
 # Changelog
 
-## Unreleased
+## v1.1.9
 
-- fix: bound the annotation search to the annotation's own time window. Searching `/api/annotations`
-  by tags without `from`/`to` makes Grafana scan the whole annotation history, which grows with every
-  experiment and step until the search no longer answers within the request timeout - leaving every
-  annotation without its end time.
-
-- fix: the experiment event listeners no longer call the Grafana API on the request goroutine.
-  Waiting for the annotation find/patch round-trips made the extension exceed the agent's request
-  timeout, which was answered with `503 Timeout` and reported as a failed trigger event listener.
-  Annotations are now queued and processed by a single worker, which keeps the order of the events.
+- chore(deps): bump github.com/steadybit/action-kit/go/action_kit_test
+- chore(deps): bump github.com/steadybit/discovery-kit/go/discovery_kit_test
+- chore(deps): bump github.com/stretchr/testify from 1.12.0 to 1.12.1
+- chore(deps): bump golang from 1.26-alpine to 1.27-alpine
 - fix: bound requests to the Grafana API with a timeout (`STEADYBIT_EXTENSION_API_TIMEOUT`, default
-  `5s`). Resty applies no timeout by default.
+- fix: bound the annotation search to the annotation's own time window. Searching `/api/annotations`
+- fix: bound the annotation search to the annotation's time window (#105)
 - fix: drain queued annotations on shutdown so a rolling restart does not silently discard them.
 - fix: reject an `experiment-step-completed` event without step execution data instead of panicking.
+- fix: stop calling the Grafana API on the request goroutine (#104)
+- fix: the experiment event listeners no longer call the Grafana API on the request goroutine.
 
 ## v1.1.8
 
