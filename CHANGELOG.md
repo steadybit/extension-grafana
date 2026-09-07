@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.10
+
+- chore(deps): bump github.com/steadybit/action-kit/go/action_kit_test
+
 ## v1.1.9
 
 - chore(deps): bump github.com/steadybit/action-kit/go/action_kit_test
