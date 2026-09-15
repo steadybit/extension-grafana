@@ -37,6 +37,7 @@ func TestWithMinikube(t *testing.T) {
 		ExtraArgs: func(m *e2e.Minikube) []string {
 			return []string{
 				"--set", fmt.Sprintf("grafana.apiBaseUrl=http://host.minikube.internal:%s", port),
+				"--set", "grafana.serviceToken=service-token-123",
 				"--set", "logging.level=trace",
 			}
 		},
