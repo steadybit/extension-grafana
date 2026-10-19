@@ -19,6 +19,7 @@ You need to have a [Grafana service token](https://grafana.com/docs/grafana/late
 | `STEADYBIT_EXTENSION_SEND_ANNOTATIONS`                        | `grafana.sendAnnotations`                 | Enable sending annotations to Grafana for experiment events                                                                | no       | `false` |
 | `STEADYBIT_EXTENSION_DISCOVERY_ATTRIBUTES_EXCLUDES_ALERTRULE` | `discovery.attributes.excludes.alertrule` | List of Alert Rule Attributes which will be excluded during discovery. Checked by key equality and supporting trailing "*" | no       |         |
 | `STEADYBIT_EXTENSION_API_TIMEOUT`                             | via extraEnv variables                    | Timeout for a single request to the Grafana API, e.g. `5s`.                                                                 | no       | `5s`    |
+| `STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY`                    | `grafana.insecureSkipVerify`              | Skip TLS certificate verification when connecting to Grafana. See [Importing your own certificates](#importing-your-own-certificates). | no       | `false` |
 
 
 Beyond the settings above, this extension supports the configuration common to all Steadybit
@@ -30,6 +31,44 @@ extensions:
   stop the extension reporting targets you do not want.
 - [Group Matching](https://github.com/steadybit/discovery-kit/blob/main/docs/target-enrichment.md#group-matching) —
   tag discovered targets with a group, so enrichment rules only match within it.
+
+## Importing your own certificates
+
+If your Grafana is served with a self-signed certificate, or one issued by a private CA, either trust the CA
+(recommended) or skip certificate verification.
+
+### Option 1: Mounting custom certificates
+
+Store the CA certificate (`*.crt`) in a config map:
+
+```shell
+kubectl create configmap -n steadybit-agent grafana-self-signed-ca --from-file=./self-signed-ca.crt
+```
+
+Then mount it and add it to the trusted certificate directories:
+
+```yaml
+extraVolumeMounts:
+  - name: extra-certs
+    mountPath: /etc/ssl/extra-certs
+    readOnly: true
+extraVolumes:
+  - name: extra-certs
+    configMap:
+      name: grafana-self-signed-ca
+extraEnv:
+  - name: SSL_CERT_DIR
+    value: /etc/ssl/extra-certs:/etc/ssl/certs
+```
+
+### Option 2: Skipping certificate verification
+
+Disables TLS certificate verification. Suitable for testing, not recommended for production.
+
+```yaml
+grafana:
+  insecureSkipVerify: true
+```
 
 ## Installation
 

@@ -41,6 +41,8 @@ manifest should match discovery exclusions:
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
                   value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -122,6 +124,8 @@ manifest should match service token:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: https://my-grafana
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
@@ -206,6 +210,8 @@ manifest should match snapshot using podAnnotations and Labels:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
@@ -293,6 +299,8 @@ manifest should match snapshot with TLS:
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
                   value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -341,6 +349,98 @@ manifest should match snapshot with TLS:
               secret:
                 optional: false
                 secretName: server-cert
+manifest should match snapshot with custom certificates and insecureSkipVerify:
+  1: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        steadybit.com/discovery-disabled: "true"
+        steadybit.com/extension: "true"
+      name: RELEASE-NAME-steadybit-extension-grafana
+      namespace: NAMESPACE
+    spec:
+      replicas: 1
+      selector:
+        matchLabels:
+          app.kubernetes.io/instance: RELEASE-NAME
+          app.kubernetes.io/name: steadybit-extension-grafana
+      template:
+        metadata:
+          annotations:
+            oneagent.dynatrace.com/injection: "false"
+          labels:
+            app.kubernetes.io/instance: RELEASE-NAME
+            app.kubernetes.io/name: steadybit-extension-grafana
+            steadybit.com/discovery-disabled: "true"
+            steadybit.com/extension: "true"
+        spec:
+          containers:
+            - env:
+                - name: STEADYBIT_LOG_LEVEL
+                  value: INFO
+                - name: STEADYBIT_LOG_FORMAT
+                  value: text
+                - name: STEADYBIT_EXTENSION_SERVICE_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      key: service-token
+                      name: steadybit-extension-grafana
+                - name: STEADYBIT_EXTENSION_API_BASE_URL
+                  value: null
+                - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "true"
+                - name: SSL_CERT_DIR
+                  value: /etc/ssl/extra-certs:/etc/ssl/certs
+              image: ghcr.io/steadybit/extension-grafana:v0.0.0
+              imagePullPolicy: IfNotPresent
+              livenessProbe:
+                failureThreshold: 5
+                httpGet:
+                  path: /health/liveness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 5
+              name: extension
+              readinessProbe:
+                failureThreshold: 3
+                httpGet:
+                  path: /health/readiness
+                  port: 8084
+                initialDelaySeconds: 10
+                periodSeconds: 10
+                successThreshold: 1
+                timeoutSeconds: 1
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 32Mi
+                requests:
+                  cpu: 50m
+                  memory: 16Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+              volumeMounts:
+                - mountPath: /etc/ssl/extra-certs
+                  name: extra-certs
+                  readOnly: true
+          securityContext:
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+          serviceAccountName: steadybit-extension-grafana
+          volumes:
+            - configMap:
+                name: grafana-self-signed-ca
+              name: extra-certs
 manifest should match snapshot with custom image registry:
   1: |
     apiVersion: apps/v1
@@ -381,6 +481,8 @@ manifest should match snapshot with custom image registry:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
               image: my-registry.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
@@ -464,6 +566,8 @@ manifest should match snapshot with env vars:
                   value: https://grafana.example.com
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
                   value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -546,6 +650,8 @@ manifest should match snapshot with existing secret:
                   value: https://grafana.example.com
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
                   value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -627,6 +733,8 @@ manifest should match snapshot with extra env vars:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
                 - name: FOO
                   value: bar
@@ -719,6 +827,8 @@ manifest should match snapshot with extra labels:
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
                   value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -800,6 +910,8 @@ manifest should match snapshot with global image pull secrets:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
@@ -885,6 +997,8 @@ manifest should match snapshot with global image registry:
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
                   value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "false"
               image: corp-registry.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -966,6 +1080,8 @@ manifest should match snapshot with global priority class:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
@@ -1050,6 +1166,8 @@ manifest should match snapshot with image pull secrets:
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
                   value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -1133,6 +1251,8 @@ manifest should match snapshot with legacy image name containing registry:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
@@ -1221,6 +1341,8 @@ manifest should match snapshot with mutual TLS:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
@@ -1324,6 +1446,8 @@ manifest should match snapshot with mutual TLS using containerPaths:
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
                   value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -1405,6 +1529,8 @@ manifest should match snapshot with podSecurityContext:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
@@ -1489,6 +1615,8 @@ manifest should match snapshot with priority class:
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
                   value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
+                  value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent
               livenessProbe:
@@ -1571,6 +1699,8 @@ manifest should match snapshot without TLS:
                 - name: STEADYBIT_EXTENSION_API_BASE_URL
                   value: null
                 - name: STEADYBIT_EXTENSION_SEND_ANNOTATIONS
+                  value: "false"
+                - name: STEADYBIT_EXTENSION_INSECURE_SKIP_VERIFY
                   value: "false"
               image: ghcr.io/steadybit/extension-grafana:v0.0.0
               imagePullPolicy: IfNotPresent

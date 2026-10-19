@@ -8,6 +8,7 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,6 +26,11 @@ type mockServer struct {
 }
 
 func createMockGrafanaServer() *mockServer {
+	return createMockGrafanaServerWithTLS(nil)
+}
+
+// createMockGrafanaServerWithTLS serves HTTPS with the given certificate, or plain HTTP when it is nil.
+func createMockGrafanaServerWithTLS(cert *tls.Certificate) *mockServer {
 	listener, err := net.Listen("tcp", "0.0.0.0:0")
 	if err != nil {
 		panic(fmt.Sprintf("httptest: failed to listen: %v", err))
@@ -32,7 +38,12 @@ func createMockGrafanaServer() *mockServer {
 	mux := http.NewServeMux()
 
 	server := httptest.Server{Listener: listener, Config: &http.Server{Handler: mux}}
-	server.Start()
+	if cert != nil {
+		server.TLS = &tls.Config{Certificates: []tls.Certificate{*cert}}
+		server.StartTLS()
+	} else {
+		server.Start()
+	}
 	log.Info().Str("url", server.URL).Msg("Started Mock-Server")
 
 	mock := &mockServer{http: &server, state: "CLEAR"}
