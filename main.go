@@ -25,6 +25,7 @@ import (
 	"github.com/steadybit/extension-kit/extotel"
 	"github.com/steadybit/extension-kit/extruntime"
 	"github.com/steadybit/extension-kit/extsignals"
+	"github.com/steadybit/extension-kit/exttls"
 )
 
 func main() {
@@ -65,12 +66,14 @@ func main() {
 
 func initRestyClient() {
 	extalertrules.RestyClient = resty.New()
+	extalertrules.RestyClient.SetTransport(exttls.Transport())
 	extalertrules.RestyClient.SetTimeout(config.Config.GetApiTimeout())
 	extalertrules.RestyClient.SetBaseURL(config.Config.ApiBaseUrl)
 	extalertrules.RestyClient.SetHeader("Authorization", "Bearer "+config.Config.ServiceToken)
 	extalertrules.RestyClient.SetHeader("Content-Type", "application/json")
 
 	extannotations.RestyClient = resty.New()
+	extannotations.RestyClient.SetTransport(exttls.Transport())
 	extannotations.RestyClient.SetTimeout(config.Config.GetApiTimeout())
 	extannotations.RestyClient.SetRetryCount(2)
 	extannotations.RestyClient.SetRetryWaitTime(500 * time.Millisecond)

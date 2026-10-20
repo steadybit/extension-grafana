@@ -8,10 +8,15 @@
 package e2e
 
 import (
+	"crypto/tls"
 	"fmt"
+	stdlog "log"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
+	"sync/atomic"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -22,20 +27,43 @@ import (
 type mockServer struct {
 	http  *httptest.Server
 	state string
+	// tlsHandshakeErrors counts handshakes the client aborted, e.g. because it does not trust the certificate.
+	tlsHandshakeErrors atomic.Int64
+}
+
+// errorLogWriter forwards the mock's server error log to stderr and counts TLS handshake errors.
+type errorLogWriter struct{ mock *mockServer }
+
+func (w errorLogWriter) Write(p []byte) (int, error) {
+	if strings.Contains(string(p), "TLS handshake error") {
+		w.mock.tlsHandshakeErrors.Add(1)
+	}
+	return os.Stderr.Write(p)
 }
 
 func createMockGrafanaServer() *mockServer {
+	return createMockGrafanaServerWithTLS(nil)
+}
+
+// createMockGrafanaServerWithTLS serves HTTPS with the given certificate, or plain HTTP when it is nil.
+func createMockGrafanaServerWithTLS(cert *tls.Certificate) *mockServer {
 	listener, err := net.Listen("tcp", "0.0.0.0:0")
 	if err != nil {
 		panic(fmt.Sprintf("httptest: failed to listen: %v", err))
 	}
 	mux := http.NewServeMux()
+	mock := &mockServer{state: "CLEAR"}
 
-	server := httptest.Server{Listener: listener, Config: &http.Server{Handler: mux}}
-	server.Start()
+	server := httptest.Server{Listener: listener, Config: &http.Server{Handler: mux, ErrorLog: stdlog.New(errorLogWriter{mock}, "", stdlog.LstdFlags)}}
+	if cert != nil {
+		server.TLS = &tls.Config{Certificates: []tls.Certificate{*cert}}
+		server.StartTLS()
+	} else {
+		server.Start()
+	}
 	log.Info().Str("url", server.URL).Msg("Started Mock-Server")
 
-	mock := &mockServer{http: &server, state: "CLEAR"}
+	mock.http = &server
 	mux.Handle("GET /api/datasources", handler(mock.viewDatasources))
 	mux.Handle("GET /api/datasources/uid/{uid}/health", handler(mock.viewGrafanaAlertRuleHealthCheck))
 	mux.Handle("GET /api/prometheus/loki/api/v1/rules", handler(mock.viewLokiAlertRules))
