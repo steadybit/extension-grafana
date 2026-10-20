@@ -53,7 +53,7 @@ func TestWithMinikubeSelfSignedCertificate(t *testing.T) {
 	}{
 		{
 			name: "rejects self-signed certificate by default",
-			test: testNoAlertRulesDiscovered,
+			test: testNoAlertRulesDiscovered(server),
 		},
 		{
 			name: "accepts self-signed certificate with insecureSkipVerify",
@@ -95,19 +95,24 @@ func TestWithMinikubeSelfSignedCertificate(t *testing.T) {
 	}
 }
 
-// testNoAlertRulesDiscovered asserts the discovery answers but finds nothing, as every request to the mock
-// fails the TLS handshake. Targets are refreshed on startup, so the window covers the first refresh.
-func testNoAlertRulesDiscovered(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
-	responded := false
-	for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); time.Sleep(2 * time.Second) {
-		targets, err := e.DiscoverTargets("com.steadybit.extension_grafana.alert-rule")
-		if err != nil {
-			continue
+// testNoAlertRulesDiscovered asserts the extension reached the mock but aborted the TLS handshake, and so
+// discovered nothing. Discovery reports an empty list on any request failure, so the handshake errors are
+// what proves the certificate was rejected. Targets are refreshed on startup, so the window covers the
+// first refresh.
+func testNoAlertRulesDiscovered(server *mockServer) func(t *testing.T, m *e2e.Minikube, e *e2e.Extension) {
+	return func(t *testing.T, _ *e2e.Minikube, e *e2e.Extension) {
+		responded := false
+		for deadline := time.Now().Add(20 * time.Second); time.Now().Before(deadline); time.Sleep(2 * time.Second) {
+			targets, err := e.DiscoverTargets("com.steadybit.extension_grafana.alert-rule")
+			if err != nil {
+				continue
+			}
+			responded = true
+			require.Empty(t, targets, "no alert rule must be discovered from a server with an untrusted certificate")
 		}
-		responded = true
-		require.Empty(t, targets, "no alert rule must be discovered from a server with an untrusted certificate")
+		assert.True(t, responded, "discovery never answered")
+		assert.Positive(t, server.tlsHandshakeErrors.Load(), "the extension must have reached the mock and rejected its certificate")
 	}
-	assert.True(t, responded, "discovery never answered")
 }
 
 // generateSelfSignedCert returns a certificate valid for host.minikube.internal, and the path of its PEM file
