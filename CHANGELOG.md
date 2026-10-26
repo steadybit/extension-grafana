@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.1.15
+
+- chore(deps): bump action_kit_test to v1.4.13 (#116)
+- feat: support Grafana with self-signed certificates (#114)
+
 ## v1.1.14
 
 - chore(deps): bump golang.org/x/net to v0.61.0
