@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.1.16
+
+- chore(deps): bump github.com/KimMachineGun/automemlimit
+
 ## v1.1.15
 
 - chore(deps): bump action_kit_test to v1.4.13 (#116)
