@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- feat: the Alert Rule check shows Fail early with the other check settings
+
 ## v1.1.16
 
 - chore(deps): bump github.com/KimMachineGun/automemlimit
