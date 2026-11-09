@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- fix(chart): raise default memory to 32Mi request / 64Mi limit (was 16Mi / 32Mi), to leave room for large alert rule lists
 - feat: the Alert Rule check shows Fail early with the other check settings
 
 ## v1.1.16
