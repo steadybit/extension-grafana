@@ -1,9 +1,13 @@
 # Changelog
 
-## Unreleased
+## v1.2.0
 
-- fix(chart): raise default memory to 32Mi request / 64Mi limit (was 16Mi / 32Mi), to leave room for large alert rule lists
+- chore(deps): bump github.com/steadybit/discovery-kit/go/discovery_kit_sdk
+- chore(deps): bump golang.org/x/net to v0.62.0
+- feat: show Fail early with the other check settings
 - feat: the Alert Rule check shows Fail early with the other check settings
+- fix(chart): raise default memory to 32Mi request / 64Mi limit (#120)
+- fix(chart): raise default memory to 32Mi request / 64Mi limit (was 16Mi / 32Mi), to leave room for large alert rule lists
 
 ## v1.1.16
 
