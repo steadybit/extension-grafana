@@ -1,7 +1,7 @@
 apiVersion: v2
 name: steadybit-extension-grafana
 description: Steadybit grafana extension Helm chart for Kubernetes.
-version: 1.2.43
+version: 1.2.44
 appVersion: v1.2.0
 home: https://www.steadybit.com/
 icon: https://steadybit-website-assets.s3.amazonaws.com/logo-symbol-transparent.png
@@ -11,9 +11,6 @@ maintainers:
 sources:
   - https://github.com/steadybit/extension-grafana
 annotations:
-  artifacthub.io/images: |
-    - name: logo
-      image: https://steadybit-website-assets.s3.amazonaws.com/logo-symbol-transparent.png
   artifacthub.io/links: |-
     - name: Steadybit website
       url: https://www.steadybit.com
